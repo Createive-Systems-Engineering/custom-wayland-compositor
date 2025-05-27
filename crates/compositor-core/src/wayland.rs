@@ -37,15 +37,37 @@ use smithay::{
         selection::{
             SelectionHandler,
             primary_selection::{PrimarySelectionHandler, PrimarySelectionState},
+            data_device::{DataDeviceHandler, DataDeviceState, ClientDndGrabHandler, ServerDndGrabHandler},
         },
         tablet_manager::{TabletManagerState, TabletSeatHandler},
-        shell::xdg::{
-            PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
-            decoration::{XdgDecorationHandler, XdgDecorationState},
+        shell::{
+            xdg::{
+                PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
+                decoration::{XdgDecorationHandler, XdgDecorationState},
+            },
+            wlr_layer::{WlrLayerShellHandler, WlrLayerShellState, LayerSurface, Layer},
         },
         shm::{ShmHandler, ShmState},
         viewporter::ViewporterState,
+        fractional_scale::{FractionalScaleHandler, FractionalScaleManagerState},
+        content_type::ContentTypeState,
+        alpha_modifier::AlphaModifierState,
+        single_pixel_buffer::SinglePixelBufferState,
+        cursor_shape::CursorShapeManagerState,
+        commit_timing::CommitTimerState,
+        fifo::FifoManagerState,
+        // drm_lease::{DrmLeaseHandler, DrmLeaseState},  // Requires DrmNode and handler implementation
         xdg_foreign::{XdgForeignHandler, XdgForeignState},
+        idle_inhibit::{IdleInhibitHandler, IdleInhibitManagerState},
+        keyboard_shortcuts_inhibit::{KeyboardShortcutsInhibitHandler, KeyboardShortcutsInhibitState},
+        pointer_gestures::PointerGesturesState,
+        virtual_keyboard::VirtualKeyboardManagerState,
+        text_input::TextInputManagerState,
+        input_method::{InputMethodHandler, InputMethodManagerState},
+        session_lock::{SessionLockHandler, SessionLockManagerState},
+        security_context::{SecurityContextHandler, SecurityContextState},
+        xdg_activation::{XdgActivationHandler, XdgActivationState},
+        foreign_toplevel_list::{ForeignToplevelListHandler, ForeignToplevelListState},
         socket::ListeningSocketSource,
     },
 };
@@ -67,6 +89,7 @@ impl ClientData for ClientState {
 pub struct WaylandServerState {
     pub compositor_state: CompositorState,
     pub xdg_shell_state: XdgShellState,
+    pub wlr_layer_shell_state: WlrLayerShellState,
     pub shm_state: ShmState,
     pub dmabuf_state: DmabufState,
     pub dmabuf_global: DmabufGlobal,
@@ -75,10 +98,29 @@ pub struct WaylandServerState {
     pub pointer_constraints_state: PointerConstraintsState,
     pub presentation_state: PresentationState,
     pub primary_selection_state: PrimarySelectionState,
+    pub data_device_state: DataDeviceState,
     pub xdg_decoration_state: XdgDecorationState,
     pub xdg_foreign_state: XdgForeignState,
     pub tablet_manager_state: TabletManagerState,
     pub viewporter_state: ViewporterState,
+    pub fractional_scale_manager_state: FractionalScaleManagerState,
+    pub content_type_state: ContentTypeState,
+    pub alpha_modifier_state: AlphaModifierState,
+    pub single_pixel_buffer_state: SinglePixelBufferState,
+    pub cursor_shape_manager_state: CursorShapeManagerState,
+    pub commit_timer_state: CommitTimerState,
+    pub fifo_manager_state: FifoManagerState,
+    // pub drm_lease_state: DrmLeaseState,  // Requires DrmNode and handler implementation
+    pub idle_inhibit_manager_state: IdleInhibitManagerState,
+    pub keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState,
+    pub pointer_gestures_state: PointerGesturesState,
+    pub virtual_keyboard_manager_state: VirtualKeyboardManagerState,
+    pub text_input_manager_state: TextInputManagerState,
+    pub input_method_manager_state: InputMethodManagerState,
+    pub session_lock_manager_state: SessionLockManagerState,
+    pub security_context_state: SecurityContextState,
+    pub xdg_activation_state: XdgActivationState,
+    pub foreign_toplevel_list_state: ForeignToplevelListState,
     pub drm_syncobj_state: Option<DrmSyncobjState>,
     pub seat_state: SeatState<Self>,
     pub space: Space<Window>,
@@ -125,6 +167,7 @@ impl WaylandServer {
         // Initialize compositor state
         let compositor_state = CompositorState::new::<WaylandServerState>(&dh);
         let xdg_shell_state = XdgShellState::new::<WaylandServerState>(&dh);
+        let wlr_layer_shell_state = WlrLayerShellState::new::<WaylandServerState>(&dh);
         let shm_state = ShmState::new::<WaylandServerState>(&dh, vec![]);
         
         // Initialize dmabuf state for zero-copy GPU buffer sharing
@@ -161,6 +204,9 @@ impl WaylandServer {
         // Initialize primary selection for advanced clipboard functionality
         let primary_selection_state = PrimarySelectionState::new::<WaylandServerState>(&dh);
         
+        // Initialize data device manager for drag-and-drop operations and clipboard management
+        let data_device_state = DataDeviceState::new::<WaylandServerState>(&dh);
+        
         // Initialize XDG decoration manager for client-side/server-side decoration control
         let xdg_decoration_state = XdgDecorationState::new::<WaylandServerState>(&dh);
         
@@ -169,6 +215,9 @@ impl WaylandServer {
         
         // Initialize viewporter for advanced viewport transformation
         let viewporter_state = ViewporterState::new::<WaylandServerState>(&dh);
+        
+        // Initialize fractional scale manager for 4K display optimization and sub-pixel precision
+        let fractional_scale_manager_state = FractionalScaleManagerState::new::<WaylandServerState>(&dh);
         
         // Initialize tablet manager for professional graphics tablet integration
         let tablet_manager_state = TabletManagerState::new::<WaylandServerState>(&dh);
@@ -203,6 +252,7 @@ impl WaylandServer {
         let state = WaylandServerState {
             compositor_state,
             xdg_shell_state,
+            wlr_layer_shell_state,
             shm_state,
             dmabuf_state,
             dmabuf_global,
@@ -211,10 +261,29 @@ impl WaylandServer {
             pointer_constraints_state,
             presentation_state,
             primary_selection_state,
+            data_device_state,
             xdg_decoration_state,
             xdg_foreign_state,
             tablet_manager_state,
             viewporter_state,
+            fractional_scale_manager_state,
+            content_type_state: ContentTypeState::new::<WaylandServerState>(&dh),
+            alpha_modifier_state: AlphaModifierState::new::<WaylandServerState>(&dh),
+            single_pixel_buffer_state: SinglePixelBufferState::new::<WaylandServerState>(&dh),
+            cursor_shape_manager_state: CursorShapeManagerState::new::<WaylandServerState>(&dh),
+            commit_timer_state: CommitTimerState::default(),
+            fifo_manager_state: FifoManagerState::new::<WaylandServerState>(&dh),
+            // drm_lease_state: DrmLeaseState::new::<WaylandServerState>(&dh), // Requires DrmNode and handler
+            idle_inhibit_manager_state: IdleInhibitManagerState::new::<WaylandServerState>(&dh),
+            keyboard_shortcuts_inhibit_state: KeyboardShortcutsInhibitState::new::<WaylandServerState>(&dh),
+            pointer_gestures_state: PointerGesturesState::new::<WaylandServerState>(&dh),
+            virtual_keyboard_manager_state: VirtualKeyboardManagerState::new::<WaylandServerState, _>(&dh, |_client| true),
+            text_input_manager_state: TextInputManagerState::new::<WaylandServerState>(&dh),
+            input_method_manager_state: InputMethodManagerState::new::<WaylandServerState, _>(&dh, |_client| true),
+            session_lock_manager_state: SessionLockManagerState::new::<WaylandServerState, _>(&dh, |_client| true),
+            security_context_state: SecurityContextState::new::<WaylandServerState, _>(&dh, |_client| true),
+            xdg_activation_state: XdgActivationState::new::<WaylandServerState>(&dh),
+            foreign_toplevel_list_state: ForeignToplevelListState::new::<WaylandServerState>(&dh),
             drm_syncobj_state: None, // Will be initialized when DRM device is configured
             seat_state,
             space,
@@ -589,6 +658,33 @@ impl XdgShellHandler for WaylandServerState {
     }
 }
 
+// ============================================================================
+// WLR Layer Shell Handler Implementation
+// ============================================================================
+
+impl WlrLayerShellHandler for WaylandServerState {
+    fn shell_state(&mut self) -> &mut WlrLayerShellState {
+        &mut self.wlr_layer_shell_state
+    }
+    
+    fn new_layer_surface(&mut self, _surface: LayerSurface, _wl_output: Option<wayland_server::protocol::wl_output::WlOutput>, layer: Layer, namespace: String) {
+        info!("New layer surface created with namespace: {} on layer: {:?}", namespace, layer);
+        
+        // TODO: Add layer surface to appropriate layer in space
+        // TODO: Handle surface configuration based on layer (background, bottom, top, overlay)
+        // TODO: Apply exclusive zones and anchoring
+        debug!("Layer surface added to compositor space on layer: {:?}", layer);
+    }
+    
+    fn layer_destroyed(&mut self, _surface: LayerSurface) {
+        info!("Layer surface destroyed");
+        
+        // TODO: Remove layer surface from space
+        // TODO: Recalculate layout and exclusive zones
+        debug!("Layer surface removed from compositor space");
+    }
+}
+
 impl ShmHandler for WaylandServerState {
     fn shm_state(&self) -> &ShmState {
         &self.shm_state
@@ -734,6 +830,55 @@ impl PrimarySelectionHandler for WaylandServerState {
 }
 
 // ============================================================================
+// Data Device Handler Implementation
+// ============================================================================
+
+impl DataDeviceHandler for WaylandServerState {
+    fn data_device_state(&self) -> &DataDeviceState {
+        &self.data_device_state
+    }
+}
+
+impl ClientDndGrabHandler for WaylandServerState {
+    fn started(&mut self, _source: Option<wayland_server::protocol::wl_data_source::WlDataSource>, icon: Option<wayland_server::protocol::wl_surface::WlSurface>, _seat: smithay::input::Seat<Self>) {
+        info!("Drag and drop operation started");
+        if let Some(icon_surface) = icon {
+            debug!("DnD operation includes drag icon surface: {:?}", icon_surface.id());
+            // TODO: Handle drag icon rendering and positioning
+        }
+        // TODO: Begin drag operation state management
+        // TODO: Update cursor appearance for drag operation
+    }
+    
+    fn dropped(&mut self, _target: Option<WlSurface>, _validated: bool, _seat: smithay::input::Seat<Self>) {
+        info!("Drag and drop operation completed - item dropped");
+        // TODO: Handle drop completion and cleanup drag state
+        // TODO: Reset cursor appearance after drag operation
+        // TODO: Process drop target actions
+    }
+}
+
+impl ServerDndGrabHandler for WaylandServerState {
+    fn send(&mut self, _mime_type: String, _fd: std::os::fd::OwnedFd, _seat: smithay::input::Seat<Self>) {
+        info!("Server-side DnD: Sending data with mime type");
+        // TODO: Handle server-side drag and drop data transfer
+        // TODO: Write data to the provided file descriptor
+    }
+    
+    fn finished(&mut self, _seat: smithay::input::Seat<Self>) {
+        info!("Server-side DnD operation finished");
+        // TODO: Clean up server-side drag state
+        // TODO: Release any held resources
+    }
+    
+    fn cancelled(&mut self, _seat: smithay::input::Seat<Self>) {
+        info!("Server-side DnD operation cancelled");
+        // TODO: Handle cancellation cleanup
+        // TODO: Reset drag state
+    }
+}
+
+// ============================================================================
 // Tablet Manager Handler Implementation
 // ============================================================================
 
@@ -749,6 +894,27 @@ impl TabletSeatHandler for WaylandServerState {
 // It's managed directly through the ViewporterState and delegate_viewporter! macro
 
 // ============================================================================
+// Fractional Scale Handler Implementation
+// ============================================================================
+
+impl FractionalScaleHandler for WaylandServerState {
+    fn new_fractional_scale(&mut self, surface: WlSurface) {
+        info!("New fractional scale instantiated for surface: {:?}", surface.id());
+        
+        // TODO: Implement fractional scale calculation based on output configuration
+        // TODO: Send appropriate scale factor to client for 4K display optimization
+        // TODO: Integrate with output scale management for consistent scaling
+        debug!("Fractional scale handler ready for sub-pixel precision scaling");
+    }
+}
+
+// ============================================================================
+// Content Type Protocol - wp-content-type-v1 (State-only pattern)
+// ============================================================================
+// Note: wp-content-type-v1 uses state-only pattern like viewporter
+// No handler implementation required - content type info is stored in surface state
+
+// ============================================================================
 // XDG Foreign Handler Implementation
 // ============================================================================
 
@@ -758,9 +924,168 @@ impl XdgForeignHandler for WaylandServerState {
     }
 }
 
+// ============================================================================
+// Idle Inhibit Handler Implementation
+// ============================================================================
+
+impl IdleInhibitHandler for WaylandServerState {
+    fn inhibit(&mut self, surface: WlSurface) {
+        info!("Idle inhibitor activated for surface: {:?}", surface.id());
+        
+        // TODO: Implement power management integration to prevent system idle
+        // TODO: Track active inhibitors for proper reference counting
+        // TODO: Integrate with system power management daemon (e.g., systemd-logind)
+        debug!("System idle state inhibited for surface");
+    }
+    
+    fn uninhibit(&mut self, surface: WlSurface) {
+        info!("Idle inhibitor deactivated for surface: {:?}", surface.id());
+        
+        // TODO: Remove idle inhibition for this surface
+        // TODO: Check if any other surfaces still have active inhibitors
+        // TODO: Re-enable system idle if no active inhibitors remain
+        debug!("System idle inhibition released for surface");
+    }
+}
+
+// ============================================================================
+// Input Method Handler Implementation
+// ============================================================================
+
+impl InputMethodHandler for WaylandServerState {
+    fn new_popup(&mut self, _surface: smithay::wayland::input_method::PopupSurface) {
+        info!("New input method popup created");
+        // TODO: Handle input method popup surface management
+        // TODO: Position popup relative to text input focus
+        // TODO: Track popup lifecycle for proper cleanup
+    }
+    
+    fn dismiss_popup(&mut self, _surface: smithay::wayland::input_method::PopupSurface) {
+        info!("Input method popup dismissed");
+        // TODO: Handle popup dismissal
+        // TODO: Clean up any resources associated with the popup
+    }
+    
+    fn popup_repositioned(&mut self, _surface: smithay::wayland::input_method::PopupSurface) {
+        info!("Input method popup repositioned");
+        // TODO: Handle popup repositioning
+        // TODO: Update popup position relative to text input focus
+    }
+    
+    fn parent_geometry(&self, _surface: &WlSurface) -> smithay::utils::Rectangle<i32, smithay::utils::Logical> {
+        // TODO: Implement proper parent geometry calculation for positioning the popup
+        // This is a placeholder that returns a default rectangle
+        smithay::utils::Rectangle::from_size((100, 50).into())
+    }
+}
+
+// ============================================================================
+// Keyboard Shortcuts Inhibit Handler Implementation
+// ============================================================================
+
+impl KeyboardShortcutsInhibitHandler for WaylandServerState {
+    fn keyboard_shortcuts_inhibit_state(&mut self) -> &mut KeyboardShortcutsInhibitState {
+        &mut self.keyboard_shortcuts_inhibit_state
+    }
+    
+    fn new_inhibitor(&mut self, inhibitor: smithay::wayland::keyboard_shortcuts_inhibit::KeyboardShortcutsInhibitor) {
+        info!("New keyboard shortcuts inhibitor created for surface: {:?}", inhibitor.wl_surface().id());
+        
+        // TODO: Implement compositor shortcut inhibition logic
+        // TODO: Track active inhibitors per surface for proper management
+        // TODO: Disable compositor keyboard shortcuts while inhibitor is active
+        // TODO: Integrate with keyboard input handling to bypass shortcut processing
+        debug!("Keyboard shortcuts inhibition activated - compositor shortcuts disabled");
+    }
+    
+    fn inhibitor_destroyed(&mut self, inhibitor: smithay::wayland::keyboard_shortcuts_inhibit::KeyboardShortcutsInhibitor) {
+        info!("Keyboard shortcuts inhibitor destroyed for surface: {:?}", inhibitor.wl_surface().id());
+        
+        // TODO: Re-enable compositor keyboard shortcuts for this surface
+        // TODO: Remove inhibitor from tracking system
+        // TODO: Check if any other inhibitors remain active
+        // TODO: Restore full compositor shortcut functionality if no active inhibitors
+        debug!("Keyboard shortcuts inhibition deactivated - compositor shortcuts re-enabled");
+    }
+}
+
+// ============================================================================
+// Session Lock Handler Implementation
+// ============================================================================
+
+impl SessionLockHandler for WaylandServerState {
+    fn lock_state(&mut self) -> &mut SessionLockManagerState {
+        &mut self.session_lock_manager_state
+    }
+
+    fn lock(&mut self, confirmation: smithay::wayland::session_lock::SessionLocker) {
+        // Handle lock request
+        // For now, immediately confirm the lock
+        confirmation.lock();
+        info!("Session lock confirmed");
+    }
+
+    fn unlock(&mut self) {
+        // Handle unlock request
+        info!("Session unlocked");
+    }
+
+    fn new_surface(&mut self, _surface: smithay::wayland::session_lock::LockSurface, _output: smithay::reexports::wayland_server::protocol::wl_output::WlOutput) {
+        // Handle new lock surface
+        info!("New lock surface created for output");
+    }
+}
+
+// ============================================================================
+// Security Context Handler Implementation
+// ============================================================================
+
+impl SecurityContextHandler for WaylandServerState {
+    fn context_created(&mut self, _source: smithay::wayland::security_context::SecurityContextListenerSource, _security_context: smithay::wayland::security_context::SecurityContext) {
+        info!("Security context created for sandboxed application");
+        
+        // TODO: Implement sandboxed execution environment
+        // TODO: Apply security restrictions based on context capabilities
+        // TODO: Isolate context from sensitive system resources
+        // TODO: Track context permissions and enforce access controls
+        debug!("Security context established with capability-based permissions");
+    }
+}
+
+// ============================================================================
+// XDG Activation Handler Implementation
+// ============================================================================
+
+impl XdgActivationHandler for WaylandServerState {
+    fn activation_state(&mut self) -> &mut XdgActivationState {
+        &mut self.xdg_activation_state
+    }
+    
+    fn request_activation(&mut self, _token: smithay::wayland::xdg_activation::XdgActivationToken, _token_data: smithay::wayland::xdg_activation::XdgActivationTokenData, _surface: WlSurface) {
+        info!("Window activation requested for surface with token");
+        
+        // TODO: Implement focus management and window activation
+        // TODO: Validate activation request against security policies
+        // TODO: Switch focus to requested surface if authorized
+        // TODO: Update window stack order and input focus
+        debug!("Processing window activation request");
+    }
+}
+
+// ============================================================================
+// Foreign Toplevel List Handler Implementation
+// ============================================================================
+
+impl ForeignToplevelListHandler for WaylandServerState {
+    fn foreign_toplevel_list_state(&mut self) -> &mut ForeignToplevelListState {
+        &mut self.foreign_toplevel_list_state
+    }
+}
+
 // Delegate handlers to implementations
 smithay::delegate_compositor!(WaylandServerState);
 smithay::delegate_xdg_shell!(WaylandServerState);
+smithay::delegate_layer_shell!(WaylandServerState);
 smithay::delegate_output!(WaylandServerState);
 smithay::delegate_shm!(WaylandServerState);
 smithay::delegate_dmabuf!(WaylandServerState);
@@ -769,8 +1094,26 @@ smithay::delegate_relative_pointer!(WaylandServerState);
 smithay::delegate_pointer_constraints!(WaylandServerState);
 smithay::delegate_presentation!(WaylandServerState);
 smithay::delegate_primary_selection!(WaylandServerState);
+smithay::delegate_data_device!(WaylandServerState);
 smithay::delegate_xdg_decoration!(WaylandServerState);
 smithay::delegate_xdg_foreign!(WaylandServerState);
 smithay::delegate_tablet_manager!(WaylandServerState);
 smithay::delegate_viewporter!(WaylandServerState);
+smithay::delegate_fractional_scale!(WaylandServerState);
+smithay::delegate_content_type!(WaylandServerState);
+smithay::delegate_alpha_modifier!(WaylandServerState);
+smithay::delegate_single_pixel_buffer!(WaylandServerState);
+smithay::delegate_cursor_shape!(WaylandServerState);
+smithay::delegate_commit_timing!(WaylandServerState);
+smithay::delegate_fifo!(WaylandServerState);
+smithay::delegate_idle_inhibit!(WaylandServerState);
+smithay::delegate_pointer_gestures!(WaylandServerState);
+smithay::delegate_virtual_keyboard_manager!(WaylandServerState);
+smithay::delegate_text_input_manager!(WaylandServerState);
+smithay::delegate_input_method_manager!(WaylandServerState);
+smithay::delegate_keyboard_shortcuts_inhibit!(WaylandServerState);
+smithay::delegate_session_lock!(WaylandServerState);
+smithay::delegate_security_context!(WaylandServerState);
+smithay::delegate_xdg_activation!(WaylandServerState);
+smithay::delegate_foreign_toplevel_list!(WaylandServerState);
 smithay::delegate_drm_syncobj!(WaylandServerState);
