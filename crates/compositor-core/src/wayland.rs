@@ -305,11 +305,99 @@ impl WaylandServer {
         })
     }
     
+    /// Validate that we have proper graphics session access for 4K compositor operation
+    fn validate_graphics_session(&self) -> Result<()> {
+        // Check if user is in video/render groups
+        let current_user = std::env::var("USER").unwrap_or_else(|_| "unknown".to_string());
+        
+        // Check DRM device permissions
+        let drm_devices = ["/dev/dri/card0", "/dev/dri/card1", "/dev/dri/renderD128"];
+        let mut accessible_devices = Vec::new();
+        
+        for device in &drm_devices {
+            if std::fs::metadata(device).is_ok() {
+                accessible_devices.push(*device);
+            }
+        }
+        
+        if accessible_devices.is_empty() {
+            return Err(CompositorError::system(
+                "No DRM devices found. 4K compositor requires GPU access.\n\
+                 Install proper graphics drivers.".to_string()
+            ));
+        }
+        
+        info!("Graphics session validation passed:");
+        info!("  User: {}", current_user);
+        info!("  DRM devices: {:?}", accessible_devices);
+        
+        // Additional session checks
+        if let Ok(session_type) = std::env::var("XDG_SESSION_TYPE") {
+            info!("  Session type: {}", session_type);
+        }
+        
+        if let Ok(display_var) = std::env::var("DISPLAY") {
+            info!("  Display: {}", display_var);
+        }
+        
+        Ok(())
+    }
+    
+    /// Check if we have sufficient DRM privileges to create GBM devices safely
+    /// Prevents segfaults when attempting GBM device creation without proper access
+    fn check_drm_master_capabilities(fd: &std::fs::File) -> bool {
+        use std::os::unix::io::AsRawFd;
+        
+        let raw_fd = fd.as_raw_fd();
+        
+        // Check if we can perform basic DRM ioctls
+        // This is a safer way to test capabilities before attempting GBM creation
+        unsafe {
+            // Try to get the DRM version - this is a safe ioctl that doesn't require master
+            let version_ioctl = libc::ioctl(raw_fd, 0x40406400); // DRM_IOCTL_VERSION (simplified)
+            
+            if version_ioctl == -1 {
+                let errno = *libc::__errno_location();
+                warn!("DRM version ioctl failed with errno {}: basic DRM access unavailable", errno);
+                return false;
+            }
+            
+            // Try to check if we're DRM master (this may fail gracefully)
+            let master_ioctl = libc::ioctl(raw_fd, 0x641e); // DRM_IOCTL_SET_MASTER (simplified)
+            let can_be_master = master_ioctl != -1;
+            
+            if !can_be_master {
+                let errno = *libc::__errno_location();
+                // EACCES (13) or EPERM (1) are expected when not master
+                if errno == 13 || errno == 1 {
+                    info!("Unable to become drm master, assuming unprivileged mode");
+                    // For render nodes or unprivileged access, we might still be able to create GBM
+                    // but we need to be more cautious
+                    
+                    // Check if this is a render node (which doesn't require master)
+                    // Render nodes typically have paths like /dev/dri/renderD*
+                    return true; // Allow attempt for render nodes
+                } else {
+                    warn!("Unexpected DRM master check error: {}", errno);
+                    return false;
+                }
+            } else {
+                info!("✅ DRM master capabilities available");
+                // Drop master immediately - we just wanted to check
+                libc::ioctl(raw_fd, 0x641f); // DRM_IOCTL_DROP_MASTER (simplified)
+                return true;
+            }
+        }
+    }
+    
     /// Initialize EGL display and explicit sync support
-    /// This automatically enables the wl_drm protocol for legacy EGL applications
-    /// and zwp-linux-explicit-sync-v1 for modern GPU synchronization
+    /// Essential for 4K hardware acceleration and professional graphics performance
     pub fn initialize_wl_drm(&mut self) -> Result<()> {
-        info!("Initializing EGL display for wl_drm and explicit sync protocol support");
+        info!("Initializing 4K hardware acceleration pipeline (EGL + explicit sync)");
+        
+        // For 4K compositor operation, we need proper session management
+        // Check if we're running in a proper graphics session
+        self.validate_graphics_session()?;
         
         // Try to find a primary DRM node (usually /dev/dri/card0)
         let drm_node = match DrmNode::from_path("/dev/dri/card0") {
@@ -348,7 +436,27 @@ impl WaylandServer {
                 }
             };
             
-            // Open the DRM device file
+            // Check DRM device accessibility before opening
+            if !device_path.exists() {
+                warn!("DRM device path {:?} does not exist, protocols unavailable", device_path);
+                return Ok(());
+            }
+            
+            // Check if we have read permissions
+            let metadata = match std::fs::metadata(&device_path) {
+                Ok(meta) => meta,
+                Err(e) => {
+                    warn!("Cannot access DRM device metadata {:?}: {}, protocols unavailable", device_path, e);
+                    return Ok(());
+                }
+            };
+            
+            // Basic permission check - if we can't read metadata, we likely can't open the device
+            if metadata.permissions().readonly() {
+                warn!("DRM device {:?} appears to be read-only, GBM may fail", device_path);
+            }
+            
+            // Open the DRM device file once and share the file descriptor
             let fd = match std::fs::File::open(&device_path) {
                 Ok(file) => file,
                 Err(e) => {
@@ -357,7 +465,49 @@ impl WaylandServer {
                 }
             };
             
-            // Create DRM device file descriptor for explicit sync
+            // Check if we're running with proper session management before creating any devices
+            let has_session_management = std::env::var("XDG_SESSION_TYPE")
+                .map(|t| t == "wayland")
+                .unwrap_or(false) || 
+                std::env::var("WAYLAND_DISPLAY").is_ok();
+            
+            if !has_session_management {
+                warn!("Not running in Wayland session - DRM device creation may fail");
+                warn!("For full 4K hardware acceleration, run compositor in proper Wayland session");
+            }
+            
+            // Try to duplicate the file descriptor for GBM use
+            let fd_for_gbm = match fd.try_clone() {
+                Ok(cloned_fd) => cloned_fd,
+                Err(e) => {
+                    warn!("Failed to clone DRM file descriptor: {}", e);
+                    warn!("Continuing without GBM device - some 4K features will be limited");
+                    
+                    // Still create DRM device fd for explicit sync, but skip GBM
+                    let owned_fd: OwnedFd = fd.into();
+                    let device_fd = DeviceFd::from(owned_fd);
+                    let drm_device_fd = Some(DrmDeviceFd::new(device_fd));
+                    
+                    if let Some(ref device_fd) = drm_device_fd {
+                        if supports_syncobj_eventfd(device_fd) {
+                            info!("✅ DRM device supports explicit sync, initializing zwp-linux-explicit-sync-v1");
+                            
+                            let dh = self.display.handle();
+                            let syncobj_state = DrmSyncobjState::new::<WaylandServerState>(&dh, device_fd.clone());
+                            self.state.drm_syncobj_state = Some(syncobj_state);
+                            
+                            info!("✅ zwp-linux-explicit-sync-v1 protocol initialized for frame-perfect timing control");
+                        } else {
+                            warn!("DRM device does not support syncobj eventfd, explicit sync unavailable");
+                        }
+                        
+                        self.state.drm_device_fd = drm_device_fd;
+                    }
+                    return Ok(());
+                }
+            };
+            
+            // Create DRM device file descriptor for explicit sync using original fd
             let owned_fd: OwnedFd = fd.into();
             let device_fd = DeviceFd::from(owned_fd);
             let drm_device_fd = Some(DrmDeviceFd::new(device_fd));
@@ -381,35 +531,60 @@ impl WaylandServer {
                 self.state.drm_device_fd = drm_device_fd;
             }
             
-            // Create GBM device from DRM file descriptor for EGL display
-            // Re-open the file since DrmDeviceFd consumed the original
-            let fd_for_gbm = match std::fs::File::open(&device_path) {
-                Ok(file) => file,
+            // For 4K compositor operation, we need GBM device for hardware acceleration
+            // However, this requires proper DRM privileges or session management
+            
+            // Check DRM master capabilities before attempting GBM device creation
+            // This prevents segfaults when running without proper privileges
+            let can_create_gbm = Self::check_drm_master_capabilities(&fd_for_gbm);
+            
+            if !can_create_gbm {
+                warn!("Insufficient DRM privileges for GBM device creation");
+                warn!("Continuing without GBM - some 4K features may be limited");
+                warn!("This is normal when running in X11 session or without DRM master privileges");
+                warn!("To enable full acceleration:");
+                warn!("  1. Add user to video/render groups: sudo usermod -a -G video,render $USER");
+                warn!("  2. Run in proper Wayland session with compositor session management"); 
+                warn!("  3. Ensure proper udev rules for DRM device access");
+                warn!("  4. Or run as root (not recommended for security reasons)");
+                return Ok(()); // Graceful fallback - continue without GBM
+            }
+            
+            info!("DRM master capabilities confirmed, attempting to create GBM device for 4K hardware acceleration...");
+            
+            // Attempt GBM device creation with graceful fallback using cloned fd
+            let gbm_device = match GbmDevice::new(fd_for_gbm) {
+                Ok(device) => {
+                    info!("✅ Created GBM device for 4K hardware acceleration: {:?}", device_path);
+                    device
+                }
                 Err(e) => {
-                    warn!("Failed to re-open DRM device file for GBM: {}, wl_drm protocol unavailable", e);
-                    return Ok(());
+                    warn!("Failed to create GBM device despite privilege checks: {}", e);
+                    warn!("Continuing without GBM - some 4K features may be limited");
+                    warn!("This may indicate driver or library issues");
+                    return Ok(()); // Graceful fallback - continue without GBM
                 }
             };
             
-            match GbmDevice::new(fd_for_gbm) {
-                Ok(gbm_device) => {
-                    info!("Created GBM device for DRM node: {:?}", device_path);
-                    
-                    // Create EGL display from GBM device
-                    match unsafe { EGLDisplay::new(gbm_device) } {
-                        Ok(egl_display) => {
-                            info!("✅ Created EGL display from GBM device, wl_drm protocol support enabled");
-                            self.state.egl_display = Some(egl_display);
-                        }
-                        Err(e) => {
-                            warn!("Failed to create EGL display from GBM device: {}, wl_drm unavailable", e);
-                        }
-                    }
+            // Create EGL display from GBM device (essential for 4K zero-copy rendering)
+            let egl_display = match unsafe { EGLDisplay::new(gbm_device) } {
+                Ok(display) => {
+                    info!("✅ Created EGL display for 4K zero-copy rendering pipeline");
+                    display
                 }
                 Err(e) => {
-                    warn!("Failed to create GBM device: {}, wl_drm protocol unavailable", e);
+                    return Err(CompositorError::system(format!(
+                        "Failed to create EGL display: {}. 4K compositor requires EGL support.\n\
+                         Ensure:\n\
+                         1. Mesa EGL drivers are installed\n\
+                         2. GPU supports EGL extensions\n\
+                         3. Proper graphics driver configuration", e
+                    )));
                 }
-            }
+            };
+            
+            self.state.egl_display = Some(egl_display);
+            info!("✅ 4K hardware acceleration pipeline initialized successfully");
         } else {
             info!("No DRM node available, wl_drm and explicit sync protocols will be unavailable");
         }

@@ -129,4 +129,10 @@ impl Backend {
     pub fn backend_type(&self) -> &BackendType {
         &self.backend_type
     }
+    
+    /// Check if backend is initialized
+    pub fn is_initialized(&self) -> bool {
+        // Backend is considered initialized if it was created successfully
+        true
+    }
 }

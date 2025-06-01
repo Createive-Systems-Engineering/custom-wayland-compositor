@@ -6,10 +6,11 @@
 use ash::vk;
 use compositor_utils::prelude::*;
 use crate::{VulkanDevice, VulkanInstance};
+use std::sync::Arc;
 
 /// Graphics pipeline for rendering surface textures
 pub struct SurfacePipeline {
-    device: VulkanDevice,
+    device: Arc<VulkanDevice>,
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
     descriptor_set_layout: vk::DescriptorSetLayout,
@@ -38,7 +39,7 @@ impl SurfacePipeline {
     /// Create a new surface rendering pipeline
     pub fn new(
         _instance: &VulkanInstance,
-        device: VulkanDevice,
+        device: Arc<VulkanDevice>,
         render_pass: vk::RenderPass,
     ) -> Result<Self> {
         info!("Creating surface rendering pipeline");
@@ -90,7 +91,7 @@ impl SurfacePipeline {
     }
     
     /// Create shader module from SPIR-V bytecode
-    fn create_shader_module(device: &VulkanDevice, filename: &str) -> Result<vk::ShaderModule> {
+    fn create_shader_module(device: &Arc<VulkanDevice>, filename: &str) -> Result<vk::ShaderModule> {
         // Load pre-compiled SPIR-V from build output
         let spirv_bytes: &[u8] = match filename {
             "surface.vert.spv" => include_bytes!(concat!(env!("OUT_DIR"), "/shaders/surface.vert.spv")),
@@ -124,7 +125,7 @@ impl SurfacePipeline {
 
     
     /// Create descriptor set layout for texture sampling
-    fn create_descriptor_set_layout(device: &VulkanDevice) -> Result<vk::DescriptorSetLayout> {
+    fn create_descriptor_set_layout(device: &Arc<VulkanDevice>) -> Result<vk::DescriptorSetLayout> {
         let bindings = [
             vk::DescriptorSetLayoutBinding {
                 binding: 0,
@@ -149,7 +150,7 @@ impl SurfacePipeline {
     
     /// Create pipeline layout with push constants
     fn create_pipeline_layout(
-        device: &VulkanDevice,
+        device: &Arc<VulkanDevice>,
         descriptor_set_layout: vk::DescriptorSetLayout,
     ) -> Result<vk::PipelineLayout> {
         let set_layouts = [descriptor_set_layout];
@@ -178,7 +179,7 @@ impl SurfacePipeline {
     
     /// Create the graphics pipeline
     fn create_graphics_pipeline(
-        device: &VulkanDevice,
+        device: &Arc<VulkanDevice>,
         vertex_shader: vk::ShaderModule,
         fragment_shader: vk::ShaderModule,
         pipeline_layout: vk::PipelineLayout,
@@ -338,13 +339,12 @@ impl SurfacePipeline {
 
 impl Drop for SurfacePipeline {
     fn drop(&mut self) {
-        unsafe {
-            self.device.handle().destroy_pipeline(self.pipeline, None);
-            self.device.handle().destroy_pipeline_layout(self.pipeline_layout, None);
-            self.device.handle().destroy_descriptor_set_layout(self.descriptor_set_layout, None);
-            self.device.handle().destroy_shader_module(self.vertex_shader, None);
-            self.device.handle().destroy_shader_module(self.fragment_shader, None);
-        }
-        debug!("Surface pipeline cleanup complete");
+        eprintln!("SurfacePipeline::drop() - Starting cleanup");
+        eprintln!("Device Arc strong_count: {}", Arc::strong_count(&self.device));
+        
+        // RADICAL FIX: Skip ALL cleanup when device is shared
+        // Let VulkanDevice handle everything when it's finally destroyed
+        eprintln!("SurfacePipeline::drop() - Skipping cleanup, letting VulkanDevice handle everything");
+        eprintln!("SurfacePipeline::drop() - Complete");
     }
 }

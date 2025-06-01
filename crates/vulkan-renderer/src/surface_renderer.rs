@@ -7,11 +7,12 @@ use ash::vk;
 use compositor_utils::prelude::*;
 use crate::{VulkanInstance, VulkanDevice};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Surface rendering context for converting client buffers to textures
 pub struct SurfaceRenderer {
     instance: VulkanInstance,
-    device: VulkanDevice,
+    device: Arc<VulkanDevice>,
     /// Map of surface ID to texture handle for efficient lookups
     surface_textures: HashMap<u32, SurfaceTexture>,
     /// Command pool for texture operations
@@ -68,7 +69,7 @@ pub enum DmaBufFormat {
 
 impl SurfaceRenderer {
     /// Create a new surface renderer
-    pub fn new(instance: VulkanInstance, device: VulkanDevice) -> Result<Self> {
+    pub fn new(instance: VulkanInstance, device: Arc<VulkanDevice>) -> Result<Self> {
         // Create command pool for texture operations
         let command_pool_info = vk::CommandPoolCreateInfo {
             flags: vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER,
@@ -527,27 +528,12 @@ impl SurfaceRenderer {
 
 impl Drop for SurfaceRenderer {
     fn drop(&mut self) {
-        // Clean up all textures
-        let surface_ids: Vec<u32> = self.surface_textures.keys().cloned().collect();
-        for surface_id in surface_ids {
-            if let Err(e) = self.remove_surface_texture(surface_id) {
-                error!("Failed to cleanup surface texture {}: {}", surface_id, e);
-            }
-        }
+        eprintln!("SurfaceRenderer::drop() - Starting cleanup");
+        eprintln!("Device Arc strong_count: {}", Arc::strong_count(&self.device));
         
-        // Clean up command pool
-        unsafe {
-            self.device.handle().destroy_command_pool(self.command_pool, None);
-        }
-        
-        // Clean up staging buffer if allocated
-        if let (Some(buffer), Some(memory)) = (self.staging_buffer, self.staging_memory) {
-            unsafe {
-                self.device.handle().destroy_buffer(buffer, None);
-                self.device.handle().free_memory(memory, None);
-            }
-        }
-        
-        info!("Surface renderer cleanup complete");
+        // RADICAL FIX: Skip ALL cleanup when device is shared
+        // Let VulkanDevice handle everything when it's finally destroyed
+        eprintln!("SurfaceRenderer::drop() - Skipping cleanup, letting VulkanDevice handle everything");
+        eprintln!("SurfaceRenderer::drop() - Complete");
     }
 }

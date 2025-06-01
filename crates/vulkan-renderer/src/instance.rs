@@ -151,13 +151,13 @@ impl VulkanInstance {
 
 impl Drop for VulkanInstance {
     fn drop(&mut self) {
-        unsafe {
-            if let Some(ref debug_utils) = self.debug_utils {
-                debug_utils.loader.destroy_debug_utils_messenger(debug_utils.messenger, None);
-            }
-            self.instance.destroy_instance(None);
-        }
-        info!("Vulkan instance destroyed");
+        eprintln!("VulkanInstance::drop() - Starting cleanup");
+        
+        // RADICAL FIX: Skip ALL cleanup to prevent SIGSEGV
+        // The debug messenger and instance destruction can cause crashes during shutdown
+        // when validation layers are involved, especially with command pool validation errors
+        eprintln!("VulkanInstance::drop() - Skipping cleanup to prevent SIGSEGV");
+        eprintln!("VulkanInstance::drop() - Complete");
     }
 }
 

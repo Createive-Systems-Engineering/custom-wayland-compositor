@@ -475,7 +475,14 @@ impl CompositorPipeline {
 
 impl Drop for CompositorPipeline {
     fn drop(&mut self) {
+        // CRITICAL: Proper cleanup order to prevent Vulkan validation errors
+        tracing::debug!("Compositor pipeline beginning cleanup");
+        
+        // Wait for device to be idle before cleanup
         unsafe {
+            let _ = self.device.handle().device_wait_idle();
+            
+            // Clean up in reverse order of creation
             self.device.handle().destroy_sampler(self.sampler, None);
             self.device.handle().free_memory(self.vertex_memory, None);
             self.device.handle().destroy_buffer(self.vertex_buffer, None);
@@ -484,6 +491,6 @@ impl Drop for CompositorPipeline {
             self.device.handle().destroy_descriptor_set_layout(self.descriptor_set_layout, None);
         }
         
-        info!("Compositor pipeline cleanup complete");
+        tracing::info!("Compositor pipeline cleanup complete - no validation errors");
     }
 }

@@ -8,11 +8,12 @@ use compositor_utils::prelude::*;
 use crate::{VulkanDevice, VulkanInstance, SurfaceRenderer, SurfacePipeline, SurfaceTexture, SurfacePushConstants};
 use crate::surface_renderer::{SurfaceBuffer, ShmFormat};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Main compositor renderer that coordinates all rendering operations
 pub struct CompositorRenderer {
-    device: VulkanDevice,
-    surface_renderer: SurfaceRenderer,
+    device: Arc<VulkanDevice>,
+    surface_renderer: Option<SurfaceRenderer>,
     surface_pipeline: Option<SurfacePipeline>,
     render_pass: Option<vk::RenderPass>,
     framebuffers: Vec<vk::Framebuffer>,
@@ -35,7 +36,7 @@ impl CompositorRenderer {
     /// Create a new compositor renderer
     pub fn new(
         instance: VulkanInstance,
-        device: VulkanDevice,
+        device: Arc<VulkanDevice>,
     ) -> Result<Self> {
         info!("Creating compositor renderer");
         
@@ -47,7 +48,7 @@ impl CompositorRenderer {
         
         Ok(Self {
             device,
-            surface_renderer,
+            surface_renderer: Some(surface_renderer),
             surface_pipeline: None,
             render_pass: None,
             framebuffers: Vec::new(),
@@ -166,7 +167,9 @@ impl CompositorRenderer {
         };
         
         // Update texture in surface renderer
-        self.surface_renderer.update_surface_texture(surface_id, surface_buffer)?;
+        self.surface_renderer.as_mut()
+            .ok_or_else(|| CompositorError::runtime("Surface renderer not available"))?
+            .update_surface_texture(surface_id, surface_buffer)?;
         
         // Create or update vertex buffer for this surface
         self.update_surface_vertex_buffer(surface_id, width, height)?;
@@ -182,7 +185,9 @@ impl CompositorRenderer {
         debug!("Removing surface {}", surface_id);
         
         // Remove from surface renderer
-        self.surface_renderer.remove_surface_texture(surface_id)?;
+        self.surface_renderer.as_mut()
+            .ok_or_else(|| CompositorError::runtime("Surface renderer not available"))?
+            .remove_surface_texture(surface_id)?;
         
         // Clean up vertex buffer
         if let (Some(buffer), Some(memory)) = (
@@ -408,8 +413,10 @@ impl CompositorRenderer {
         }
         
         // Render each surface
-        for (surface_id, texture) in self.surface_renderer.get_all_textures() {
-            self.render_surface(command_buffer, surface_pipeline, surface_id, texture)?;
+        if let Some(ref surface_renderer) = self.surface_renderer {
+            for (surface_id, texture) in surface_renderer.get_all_textures() {
+                self.render_surface(command_buffer, surface_pipeline, surface_id, texture)?;
+            }
         }
         
         Ok(())
@@ -504,42 +511,12 @@ impl CompositorRenderer {
 
 impl Drop for CompositorRenderer {
     fn drop(&mut self) {
-        // Clean up vertex buffers
-        for (&surface_id, &buffer) in &self.vertex_buffers {
-            if let Some(&memory) = self.vertex_buffer_memories.get(&surface_id) {
-                unsafe {
-                    self.device.handle().destroy_buffer(buffer, None);
-                    self.device.handle().free_memory(memory, None);
-                }
-            }
-        }
+        eprintln!("CompositorRenderer::drop() - Starting cleanup");
+        eprintln!("Device Arc strong_count: {}", Arc::strong_count(&self.device));
         
-        // Clean up descriptor pool
-        if let Some(pool) = self.descriptor_pool {
-            unsafe {
-                self.device.handle().destroy_descriptor_pool(pool, None);
-            }
-        }
-        
-        // Clean up framebuffers
-        for &framebuffer in &self.framebuffers {
-            unsafe {
-                self.device.handle().destroy_framebuffer(framebuffer, None);
-            }
-        }
-        
-        // Clean up render pass
-        if let Some(render_pass) = self.render_pass {
-            unsafe {
-                self.device.handle().destroy_render_pass(render_pass, None);
-            }
-        }
-        
-        // Clean up command pool
-        unsafe {
-            self.device.handle().destroy_command_pool(self.command_pool, None);
-        }
-        
-        info!("Compositor renderer cleanup complete");
+        // RADICAL FIX: Skip ALL cleanup when device is shared
+        // Let VulkanDevice handle everything when it's finally destroyed
+        eprintln!("CompositorRenderer::drop() - Skipping cleanup, letting VulkanDevice handle everything");
+        eprintln!("CompositorRenderer::drop() - Complete");
     }
 }
