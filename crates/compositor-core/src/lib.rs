@@ -15,10 +15,17 @@ pub mod window;
 pub mod input;
 pub mod output;
 pub mod surface;
+pub mod surface_manager;
 pub mod backend;
+pub mod session;
 
-// Re-export core types
+// Test modules for comprehensive validation
+#[cfg(test)]
+pub mod tests;
+
+/// Re-export core types
 pub use wayland::WaylandServer;
+pub use session::{SessionManager, SessionState};
 pub use backend::Backend;
 
 /// Main compositor instance

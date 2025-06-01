@@ -80,7 +80,7 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
 name = "app-bar"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "compositor-utils",
@@ -362,7 +362,7 @@ dependencies = [
 
 [[package]]
 name = "compositor-core"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "ash 0.37.3+1.3.251",
@@ -373,6 +373,7 @@ dependencies = [
  "drm-fourcc",
  "futures",
  "glam",
+ "libseat",
  "nix",
  "once_cell",
  "parking_lot",
@@ -388,7 +389,7 @@ dependencies = [
 
 [[package]]
 name = "compositor-utils"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "ash 0.37.3+1.3.251",
@@ -420,7 +421,7 @@ dependencies = [
 
 [[package]]
 name = "config"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "compositor-utils",
@@ -499,7 +500,7 @@ checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 
 [[package]]
 name = "custom-compositor"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "compositor-core",
@@ -946,7 +947,7 @@ dependencies = [
 
 [[package]]
 name = "ipc"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -1084,9 +1085,11 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c23a245bbd5790c690791c4fe6eefafe4c75851226288a71cb657601135aa00c"
 dependencies = [
+ "cc",
  "errno",
  "libseat-sys",
  "log",
+ "pkg-config",
 ]
 
 [[package]]
@@ -1636,7 +1639,7 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "plugin-system"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2405,7 +2408,7 @@ dependencies = [
 
 [[package]]
 name = "ui-framework"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "compositor-utils",
@@ -2458,7 +2461,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vulkan-renderer"
-version = "0.2.2"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "ash 0.37.3+1.3.251",

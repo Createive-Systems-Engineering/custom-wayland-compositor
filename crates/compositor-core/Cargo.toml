@@ -19,6 +19,9 @@ wayland-protocols-misc = { workspace = true }
 calloop = { workspace = true }
 drm-fourcc = { workspace = true }
 
+# Session management
+libseat = "0.2"
+
 # Async
 tokio = { workspace = true }
 futures = { workspace = true }

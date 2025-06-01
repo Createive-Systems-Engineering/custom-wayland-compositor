@@ -29,6 +29,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Desktop backup directory
+desktop/
+
 # Environment files
 .env
 .env.local

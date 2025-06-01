@@ -5,15 +5,17 @@
 
 use compositor_utils::prelude::*;
 use vulkan_renderer::{VulkanRenderer, SurfaceBuffer};
-use smithay::wayland::buffer::Buffer as WaylandBuffer;
+use wayland_server::protocol::wl_buffer::WlBuffer as WaylandBuffer;
 use smithay::wayland::shm;
 use smithay::wayland::dmabuf;
+use smithay::backend::allocator::Buffer;
+use drm_fourcc::DrmFourcc;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
 /// Surface manager that coordinates between Wayland and Vulkan
 pub struct SurfaceManager {
-    renderer: Arc<Mutex<VulkanRenderer>>,
+    renderer: Option<Arc<Mutex<VulkanRenderer>>>,
     /// Map of Wayland surface ID to our internal surface ID
     surface_mapping: HashMap<u64, u32>,
     next_surface_id: u32,
@@ -21,14 +23,20 @@ pub struct SurfaceManager {
 
 impl SurfaceManager {
     /// Create a new surface manager
-    pub fn new(renderer: Arc<Mutex<VulkanRenderer>>) -> Self {
+    pub fn new() -> Self {
         info!("Initializing surface manager");
         
         Self {
-            renderer,
+            renderer: None,
             surface_mapping: HashMap::new(),
             next_surface_id: 1,
         }
+    }
+    
+    /// Set the Vulkan renderer
+    pub fn set_renderer(&mut self, renderer: Arc<Mutex<VulkanRenderer>>) {
+        info!("Surface manager connected to Vulkan renderer");
+        self.renderer = Some(renderer);
     }
     
     /// Register a new Wayland surface
@@ -55,12 +63,29 @@ impl SurfaceManager {
         // Convert Wayland buffer to our surface buffer format
         let surface_buffer = self.convert_wayland_buffer(buffer)?;
         
-        // Update the renderer
-        if let Ok(mut renderer) = self.renderer.lock() {
-            renderer.update_surface_buffer(surface_id, surface_buffer)?;
-            debug!("Updated surface {} with new buffer", surface_id);
+        // Update the renderer if available
+        if let Some(ref renderer) = self.renderer {
+            if let Ok(mut renderer) = renderer.lock() {
+                // Extract buffer data and metadata for Vulkan renderer
+                match &surface_buffer {
+                    SurfaceBuffer::Shm { data, width, height, format, .. } => {
+                        let vk_format = self.shm_format_to_vulkan(*format);
+                        renderer.update_surface_buffer(surface_id, data, *width, *height, vk_format)?;
+                    },
+                    SurfaceBuffer::DmaBuf { width, height, format, .. } => {
+                        // For DMA-BUF, we'll need to handle differently
+                        // For now, create empty data as placeholder
+                        let vk_format = self.dmabuf_format_to_vulkan(*format);
+                        let empty_data = vec![0u8; (*width * *height * 4) as usize]; // 4 bytes per pixel
+                        renderer.update_surface_buffer(surface_id, &empty_data, *width, *height, vk_format)?;
+                    }
+                }
+                debug!("Updated surface {} with new buffer", surface_id);
+            } else {
+                warn!("Failed to lock renderer for surface update");
+            }
         } else {
-            warn!("Failed to lock renderer for surface update");
+            debug!("No renderer available yet, surface buffer will be processed when renderer is connected");
         }
         
         Ok(())
@@ -69,9 +94,11 @@ impl SurfaceManager {
     /// Remove a surface
     pub fn remove_surface(&mut self, wayland_surface_id: u64) -> Result<()> {
         if let Some(surface_id) = self.surface_mapping.remove(&wayland_surface_id) {
-            if let Ok(mut renderer) = self.renderer.lock() {
-                renderer.remove_surface(surface_id)?;
-                info!("Removed surface: Wayland {} -> Internal {}", wayland_surface_id, surface_id);
+            if let Some(ref renderer) = self.renderer {
+                if let Ok(mut renderer) = renderer.lock() {
+                    renderer.remove_surface(surface_id)?;
+                    info!("Removed surface: Wayland {} -> Internal {}", wayland_surface_id, surface_id);
+                }
             }
         }
         Ok(())
@@ -86,22 +113,26 @@ impl SurfaceManager {
             
             let format = match dmabuf.format().code {
                 // Common formats - map to our enum
-                fourcc::DRM_FORMAT_ARGB8888 => vulkan_renderer::surface_renderer::DmaBufFormat::Argb8888,
-                fourcc::DRM_FORMAT_XRGB8888 => vulkan_renderer::surface_renderer::DmaBufFormat::Xrgb8888,
-                fourcc::DRM_FORMAT_RGBA8888 => vulkan_renderer::surface_renderer::DmaBufFormat::Rgba8888,
-                fourcc::DRM_FORMAT_RGBX8888 => vulkan_renderer::surface_renderer::DmaBufFormat::Rgbx8888,
+                DrmFourcc::Argb8888 => vulkan_renderer::surface_renderer::DmaBufFormat::Argb8888,
+                DrmFourcc::Xrgb8888 => vulkan_renderer::surface_renderer::DmaBufFormat::Xrgb8888,
+                DrmFourcc::Rgba8888 => vulkan_renderer::surface_renderer::DmaBufFormat::Rgba8888,
+                DrmFourcc::Rgbx8888 => vulkan_renderer::surface_renderer::DmaBufFormat::Rgbx8888,
                 _ => {
                     warn!("Unsupported DMA-BUF format: {:?}", dmabuf.format());
                     vulkan_renderer::surface_renderer::DmaBufFormat::Argb8888 // Fallback
                 }
             };
             
+            // Get the first plane FD for basic handling
+            // Note: Using placeholder FD as we need actual dmabuf integration
+            let fd = -1; // TODO: Implement proper dmabuf FD extraction
+            
             return Ok(SurfaceBuffer::DmaBuf {
                 width: dmabuf.width(),
                 height: dmabuf.height(),
                 format,
-                modifier: dmabuf.format().modifier,
-                fd: dmabuf.planes()[0].fd, // Use first plane's FD
+                modifier: dmabuf.format().modifier.into(),
+                fd,
             });
         }
         
@@ -143,6 +174,26 @@ impl SurfaceManager {
     /// Get number of active surfaces
     pub fn surface_count(&self) -> usize {
         self.surface_mapping.len()
+    }
+    
+    /// Convert SHM format to Vulkan format
+    fn shm_format_to_vulkan(&self, format: vulkan_renderer::surface_renderer::ShmFormat) -> ash::vk::Format {
+        match format {
+            vulkan_renderer::surface_renderer::ShmFormat::Argb8888 => ash::vk::Format::B8G8R8A8_UNORM,
+            vulkan_renderer::surface_renderer::ShmFormat::Xrgb8888 => ash::vk::Format::B8G8R8A8_UNORM,
+            vulkan_renderer::surface_renderer::ShmFormat::Rgba8888 => ash::vk::Format::R8G8B8A8_UNORM,
+            vulkan_renderer::surface_renderer::ShmFormat::Rgbx8888 => ash::vk::Format::R8G8B8A8_UNORM,
+        }
+    }
+    
+    /// Convert DMA-BUF format to Vulkan format
+    fn dmabuf_format_to_vulkan(&self, format: vulkan_renderer::surface_renderer::DmaBufFormat) -> ash::vk::Format {
+        match format {
+            vulkan_renderer::surface_renderer::DmaBufFormat::Argb8888 => ash::vk::Format::B8G8R8A8_UNORM,
+            vulkan_renderer::surface_renderer::DmaBufFormat::Xrgb8888 => ash::vk::Format::B8G8R8A8_UNORM,
+            vulkan_renderer::surface_renderer::DmaBufFormat::Rgba8888 => ash::vk::Format::R8G8B8A8_UNORM,
+            vulkan_renderer::surface_renderer::DmaBufFormat::Rgbx8888 => ash::vk::Format::R8G8B8A8_UNORM,
+        }
     }
 }
 

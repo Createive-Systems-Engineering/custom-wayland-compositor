@@ -39,7 +39,7 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 
 [workspace.package]
-version = "0.2.2"
+version = "1.0.0"
 edition = "2021"
 authors = ["Shane <shane@example.com>"]
 license = "MIT OR Apache-2.0"
