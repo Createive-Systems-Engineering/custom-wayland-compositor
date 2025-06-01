@@ -43,7 +43,7 @@ version = "0.2.2"
 edition = "2021"
 authors = ["Shane <shane@example.com>"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/username/custom-compositor"
+repository = "https://github.com/Creative-Systems-Engineering/custom-wayland-compositor"
 description = "Advanced Wayland compositor architecture leveraging Rust systems programming and Vulkan GPU acceleration for ultra-high-resolution desktop environment development"
 
 [workspace.dependencies]
