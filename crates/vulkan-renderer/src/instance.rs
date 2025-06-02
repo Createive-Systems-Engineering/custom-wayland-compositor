@@ -7,6 +7,9 @@ use std::ffi::{CStr, CString};
 pub struct VulkanInstance {
     entry: Entry,
     instance: Instance,
+    /// Debug utilities for validation layers - intentionally unused due to radical fix
+    /// Cleanup disabled to prevent SIGSEGV during shutdown
+    #[allow(dead_code)]
     debug_utils: Option<DebugUtils>,
     api_version: u32,
 }

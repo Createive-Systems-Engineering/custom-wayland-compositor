@@ -6,27 +6,27 @@ Comprehensive testing suite for validating the custom compositor's 4K graphics c
 ## Test Structure
 
 ### Phase 1: Foundation Tests (`phase1_foundation.sh`)
-- ✅ Compilation verification
-- ✅ Core dependencies validation  
-- ✅ Backend initialization (windowed/DRM)
-- ✅ Session management verification
+- [PASS] Compilation verification
+- [PASS] Core dependencies validation  
+- [PASS] Backend initialization (windowed/DRM)
+- [PASS] Session management verification
 
 ### Phase 2: Graphics Stack Tests (`phase2_graphics_stack.sh`)
-- 🔄 Vulkan renderer initialization
-- 🔄 4K swapchain creation (3840x2160)
-- 🔄 Memory allocation for 4K framebuffers
-- 🔄 Surface composition tests
+- [ ] Vulkan renderer initialization
+- [ ] 4K swapchain creation (3840x2160)
+- [ ] Memory allocation for 4K framebuffers
+- [ ] Surface composition tests
 
 ### Phase 3: Performance Benchmarks (`performance_benchmark.sh`)
-- 📊 4K rendering performance metrics
-- 📊 Memory usage analysis
-- 📊 Frame timing validation
-- 📊 GPU utilization monitoring
+- **Metrics:** 4K rendering performance metrics
+- **Metrics:** Memory usage analysis
+- **Metrics:** Frame timing validation
+- **Metrics:** GPU utilization monitoring
 
 ### Phase 4: Professional Applications (`phase4_professional_apps.sh`)
-- 🎯 Multi-surface 4K composition
-- 🎯 Glassmorphism effect rendering
-- 🎯 Real-world application scenarios
+- **Advanced:** Multi-surface 4K composition
+- **Advanced:** Glassmorphism effect rendering
+- **Advanced:** Real-world application scenarios
 
 ## Running Tests
 
@@ -48,8 +48,8 @@ Comprehensive testing suite for validating the custom compositor's 4K graphics c
 - libseat/DRM access for production testing
 
 ## Status Legend
-- ✅ Implemented and passing
-- 🔄 In progress
-- 📊 Benchmark/metric collection
-- 🎯 Advanced feature validation
-- ❌ Failed/needs attention
+- [PASS] Implemented and passing
+- **Status:** In progress
+- **Collection:** Benchmark/metric collection
+- **Advanced:** Advanced feature validation
+- [FAIL] Failed/needs attention

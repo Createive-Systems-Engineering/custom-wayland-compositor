@@ -382,7 +382,7 @@ impl WaylandServer {
                     return false;
                 }
             } else {
-                info!("✅ DRM master capabilities available");
+                info!("DRM master capabilities available");
                 // Drop master immediately - we just wanted to check
                 libc::ioctl(raw_fd, 0x641f); // DRM_IOCTL_DROP_MASTER (simplified)
                 return true;
@@ -490,13 +490,13 @@ impl WaylandServer {
                     
                     if let Some(ref device_fd) = drm_device_fd {
                         if supports_syncobj_eventfd(device_fd) {
-                            info!("✅ DRM device supports explicit sync, initializing zwp-linux-explicit-sync-v1");
+                            info!("DRM device supports explicit sync, initializing zwp-linux-explicit-sync-v1");
                             
                             let dh = self.display.handle();
                             let syncobj_state = DrmSyncobjState::new::<WaylandServerState>(&dh, device_fd.clone());
                             self.state.drm_syncobj_state = Some(syncobj_state);
                             
-                            info!("✅ zwp-linux-explicit-sync-v1 protocol initialized for frame-perfect timing control");
+                            info!("[PASS] zwp-linux-explicit-sync-v1 protocol initialized for frame-perfect timing control");
                         } else {
                             warn!("DRM device does not support syncobj eventfd, explicit sync unavailable");
                         }
@@ -516,13 +516,13 @@ impl WaylandServer {
             // Initialize explicit sync if device supports it
             if let Some(ref device_fd) = drm_device_fd {
                 if supports_syncobj_eventfd(device_fd) {
-                    info!("✅ DRM device supports explicit sync, initializing zwp-linux-explicit-sync-v1");
+                    info!("[PASS] DRM device supports explicit sync, initializing zwp-linux-explicit-sync-v1");
                     
                     let dh = self.display.handle();
                     let syncobj_state = DrmSyncobjState::new::<WaylandServerState>(&dh, device_fd.clone());
                     self.state.drm_syncobj_state = Some(syncobj_state);
                     
-                    info!("✅ zwp-linux-explicit-sync-v1 protocol initialized for frame-perfect timing control");
+                    info!("[PASS] zwp-linux-explicit-sync-v1 protocol initialized for frame-perfect timing control");
                 } else {
                     warn!("DRM device does not support syncobj eventfd, explicit sync unavailable");
                 }
@@ -555,7 +555,7 @@ impl WaylandServer {
             // Attempt GBM device creation with graceful fallback using cloned fd
             let gbm_device = match GbmDevice::new(fd_for_gbm) {
                 Ok(device) => {
-                    info!("✅ Created GBM device for 4K hardware acceleration: {:?}", device_path);
+                    info!("[PASS] Created GBM device for 4K hardware acceleration: {:?}", device_path);
                     device
                 }
                 Err(e) => {
@@ -569,7 +569,7 @@ impl WaylandServer {
             // Create EGL display from GBM device (essential for 4K zero-copy rendering)
             let egl_display = match unsafe { EGLDisplay::new(gbm_device) } {
                 Ok(display) => {
-                    info!("✅ Created EGL display for 4K zero-copy rendering pipeline");
+                    info!("[PASS] Created EGL display for 4K zero-copy rendering pipeline");
                     display
                 }
                 Err(e) => {
@@ -584,7 +584,7 @@ impl WaylandServer {
             };
             
             self.state.egl_display = Some(egl_display);
-            info!("✅ 4K hardware acceleration pipeline initialized successfully");
+            info!("[PASS] 4K hardware acceleration pipeline initialized successfully");
         } else {
             info!("No DRM node available, wl_drm and explicit sync protocols will be unavailable");
         }

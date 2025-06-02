@@ -14,7 +14,11 @@ pub struct SurfacePipeline {
     pipeline: vk::Pipeline,
     pipeline_layout: vk::PipelineLayout,
     descriptor_set_layout: vk::DescriptorSetLayout,
+    /// Vertex shader module - cleanup disabled due to radical fix
+    #[allow(dead_code)]
     vertex_shader: vk::ShaderModule,
+    /// Fragment shader module - cleanup disabled due to radical fix  
+    #[allow(dead_code)]
     fragment_shader: vk::ShaderModule,
 }
 

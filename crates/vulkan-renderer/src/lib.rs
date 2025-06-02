@@ -58,8 +58,7 @@ impl VulkanRenderer {
         let swapchain = Swapchain::new(&self.instance, &self.device, surface, width, height)?;
         
         // Initialize compositor renderer with swapchain details
-        if let (Some(ref mut compositor_renderer), Some(ref swapchain)) = 
-            (&mut self.compositor_renderer, &self.swapchain) {
+        if let Some(ref mut compositor_renderer) = &mut self.compositor_renderer {
             compositor_renderer.initialize_swapchain(
                 swapchain.images().to_vec(),
                 swapchain.image_views().to_vec(),
@@ -167,19 +166,19 @@ pub struct RendererInfo {
 
 impl Drop for VulkanRenderer {
     fn drop(&mut self) {
-        eprintln!("🔧 VulkanRenderer::drop() - Beginning critical cleanup sequence");
+        eprintln!("VulkanRenderer::drop() - Beginning critical cleanup sequence");
         
         // RADICAL FIX: Drop components normally but they skip their cleanup
         // All components now have radical fix applied to skip Vulkan operations
-        eprintln!("🔧 Dropping compositor renderer (contains command pools)");
+        eprintln!("Dropping compositor renderer (contains command pools)");
         if let Some(compositor_renderer) = self.compositor_renderer.take() {
             drop(compositor_renderer);
         }
         
         // RADICAL FIX: Skip device_wait_idle() - this was causing SIGSEGV
-        eprintln!("🔧 VulkanRenderer::drop() - Skipping all Vulkan operations to prevent SIGSEGV");
-        eprintln!("🔧 Process will handle final cleanup on exit");
-        eprintln!("✅ VulkanRenderer::drop() complete");
+        eprintln!("VulkanRenderer::drop() - Skipping all Vulkan operations to prevent SIGSEGV");
+        eprintln!("Process will handle final cleanup on exit");
+        eprintln!("VulkanRenderer::drop() complete");
     }
 }
 
@@ -191,18 +190,18 @@ mod tests {
     /// Test Vulkan initialization for basic functionality with proper cleanup
     #[test]
     fn vulkan_init() {
-        println!("🔧 Creating test Vulkan renderer...");
+        println!("Creating test Vulkan renderer...");
         
         // Create renderer with proper scoped cleanup
         let renderer = VulkanRenderer::new().expect("Failed to create Vulkan renderer");
         let info = renderer.get_info();
         
-        println!("✅ Vulkan initialization validated");
+        println!("Vulkan initialization validated");
         println!("   API Version: {}.{}.{}", 
                  ash::vk::api_version_major(info.api_version),
                  ash::vk::api_version_minor(info.api_version),
                  ash::vk::api_version_patch(info.api_version));
-        println!("✅ Vulkan device validated");
+        println!("Vulkan device validated");
         println!("   Device: {}", info.device_name);
         println!("   Vendor: 0x{:X}", info.vendor_id);
         
@@ -211,9 +210,9 @@ mod tests {
         assert!(info.vendor_id != 0);
         
         // Explicit drop to ensure proper cleanup order
-        println!("🔧 Initiating test cleanup...");
+        println!("Initiating test cleanup...");
         drop(renderer);
-        println!("✅ Test cleanup complete - all Vulkan resources released");
+        println!("Test cleanup complete - all Vulkan resources released");
     }
     
     /// Test 4K swapchain creation capability
@@ -223,7 +222,7 @@ mod tests {
             .expect("Failed to create VulkanRenderer for 4K swapchain test");
         let info = renderer.get_info();
         
-        println!("✅ Vulkan renderer ready for 4K swapchain creation");
+        println!("Vulkan renderer ready for 4K swapchain creation");
         println!("   GPU: {}", info.device_name);
         println!("   Supports 4K resolution: 3840x2160");
         
@@ -231,7 +230,7 @@ mod tests {
         assert!(!info.device_name.is_empty());
         assert!(info.vendor_id != 0);
         
-        println!("✅ 4K swapchain creation capability validated");
+        println!("4K swapchain creation capability validated");
     }
     
     /// Test 4K memory allocation requirements
@@ -258,7 +257,7 @@ mod tests {
         assert!(!info.device_name.is_empty());
         assert!(info.vendor_id != 0);
         
-        println!("✅ 4K memory allocation requirements validated");
+        println!("4K memory allocation requirements validated");
     }
     
     /// Test GPU device capabilities for 4K rendering
@@ -272,7 +271,7 @@ mod tests {
         assert!(!info.device_name.is_empty(), "GPU device name should not be empty");
         assert!(info.vendor_id != 0, "GPU vendor ID should be valid");
         
-        println!("✅ GPU capabilities validated:");
+        println!("GPU capabilities validated:");
         println!("   Device: {}", info.device_name);
         println!("   Vendor: 0x{:X}", info.vendor_id);
         println!("   Type: {}", info.device_type);
@@ -299,7 +298,7 @@ mod tests {
         let num_surfaces = 3;
         let total_memory = test_buffer_size * num_surfaces;
         
-        println!("✅ Multi-surface rendering capability validated:");
+        println!("Multi-surface rendering capability validated:");
         println!("   GPU: {}", info.device_name);
         println!("   Memory per surface: {} MB", test_buffer_size / (1024 * 1024));
         println!("   Total memory for {} surfaces: {} MB", num_surfaces, total_memory / (1024 * 1024));
@@ -318,7 +317,7 @@ mod tests {
         
         let setup_time = start.elapsed();
         
-        println!("✅ Performance Phase 1 - Initial Setup:");
+        println!("Performance Phase 1 - Initial Setup:");
         println!("   GPU: {}", info.device_name);
         println!("   Initial setup time: {:?}", setup_time);
         println!("   Vulkan API Version: {}.{}.{}", 
@@ -352,7 +351,7 @@ mod tests {
         let max_time = operation_times.iter().max().unwrap();
         let min_time = operation_times.iter().min().unwrap();
         
-        println!("✅ Performance Phase 2 - Operations (10 iterations):");
+        println!("Performance Phase 2 - Operations (5 iterations):");
         println!("   Average access time: {:?}", avg_time);
         println!("   Min access time: {:?}", min_time);
         println!("   Max access time: {:?}", max_time);
@@ -368,7 +367,7 @@ mod tests {
     /// Comprehensive performance analysis combining both phases
     #[test]
     fn test_performance_comprehensive_analysis() {
-        println!("🚀 Comprehensive Performance Analysis for 4K Compositor");
+        println!("Comprehensive Performance Analysis for 4K Compositor");
         println!("================================================");
         
         // Measure end-to-end performance characteristics
@@ -408,7 +407,7 @@ mod tests {
         let max_op_time = operation_times.iter().max().unwrap();
         
         // Performance analysis
-        println!("📊 Performance Results:");
+        println!("Performance Results:");
         println!("   GPU Device: {}", info.device_name);
         println!("   Vendor ID: 0x{:X}", info.vendor_id);
         println!("   Vulkan API: {}.{}.{}", 
@@ -416,7 +415,7 @@ mod tests {
                  ash::vk::api_version_minor(info.api_version),
                  ash::vk::api_version_patch(info.api_version));
         println!();
-        println!("⏱️  Timing Analysis:");
+        println!("Timing Analysis:");
         println!("   Total test duration: {:?}", total_test_time);
         println!("   Renderer ready time: {:?}", renderer_ready_time);
         println!("   25 Operations - Avg: {:?}, Min: {:?}, Max: {:?}", 
@@ -429,7 +428,7 @@ mod tests {
             999999 // Very fast
         };
         
-        println!("🎯 4K Performance Projection:");
+        println!("4K Performance Projection:");
         println!("   Theoretical operation rate: {} ops/sec", theoretical_fps);
         println!("   4K framebuffer size: {} MB", (3840 * 2160 * 4) / (1024 * 1024));
         
@@ -440,7 +439,7 @@ mod tests {
         assert!(theoretical_fps > 60, 
                 "Insufficient operation rate for 60fps 4K: {} ops/sec", theoretical_fps);
         
-        println!("✅ Performance analysis complete - Ready for 4K compositor deployment");
+        println!("Performance analysis complete - Ready for 4K compositor deployment");
     }
     
     /// Test Vulkan validation layer integration
@@ -450,7 +449,7 @@ mod tests {
             .expect("Failed to create VulkanRenderer for validation layer test");
         let info = renderer.get_info();
         
-        println!("✅ Vulkan validation layer integration tested:");
+        println!("Vulkan validation layer integration tested:");
         println!("   Device: {}", info.device_name);
         println!("   API Version: {}.{}.{}", 
                  ash::vk::api_version_major(info.api_version),
@@ -472,7 +471,7 @@ mod tests {
         // Test that renderer is in a valid state for error testing
         assert!(!info.device_name.is_empty());
         
-        println!("✅ Error handling capability validated:");
+        println!("Error handling capability validated:");
         println!("   GPU: {}", info.device_name);
         println!("   Ready for robust error handling in 4K scenarios");
     }
@@ -491,7 +490,7 @@ mod tests {
             .expect("Failed to create VulkanRenderer for 4K buffer processing test");
         let info = renderer.get_info();
         
-        println!("✅ 4K buffer processing capability validated:");
+        println!("4K buffer processing capability validated:");
         println!("   GPU: {}", info.device_name);
         println!("   Buffer size: {} MB", buffer_size / (1024 * 1024));
         println!("   Resolution: {}x{}", width, height);
@@ -509,7 +508,7 @@ mod tests {
             .expect("Failed to create VulkanRenderer for hardware acceleration test");
         let info = renderer.get_info();
         
-        println!("✅ Hardware acceleration validated:");
+        println!("Hardware acceleration validated:");
         println!("   Device: {}", info.device_name);
         println!("   Vendor: 0x{:X}", info.vendor_id);
         println!("   Type: {}", info.device_type);

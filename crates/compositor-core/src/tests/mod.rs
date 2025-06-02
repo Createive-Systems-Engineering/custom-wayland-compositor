@@ -13,7 +13,7 @@ async fn session_manager() {
         .expect("Failed to initialize session manager");
     
     let state = session_manager.state();
-    println!("✅ Session manager initialized with state: {:?}", state);
+    println!("[PASS] Session manager initialized with state: {:?}", state);
     
     assert!(matches!(state, SessionState::Active | SessionState::Inactive));
 }
@@ -24,7 +24,7 @@ async fn backend_detection() {
     let backend = Backend::new().await
         .expect("Failed to initialize backend");
     
-    println!("✅ Backend initialized successfully");
+    println!("[PASS] Backend initialized successfully");
     println!("   Backend type: {:?}", backend.backend_type());
     
     // Validate we can detect display hardware
@@ -38,14 +38,14 @@ async fn wayland_server_init() {
     
     match result {
         Ok(server) => {
-            println!("✅ Wayland server initialized successfully");
+            println!("[PASS] Wayland server initialized successfully");
             println!("   Socket path: {:?}", server.socket_name());
             
             // Cleanup
             drop(server);
         },
         Err(e) => {
-            println!("⚠️  Wayland server initialization failed: {}", e);
+            println!("[WARN]  Wayland server initialization failed: {}", e);
             // In some test environments, this might fail due to permissions
             // We'll treat this as a warning rather than failure for now
         }
@@ -64,16 +64,16 @@ async fn compositor_initialization() {
     
     match result {
         Ok(mut compositor) => {
-            println!("✅ Full compositor stack initialized successfully");
+            println!("[PASS] Full compositor stack initialized successfully");
             
             // Test graceful shutdown
             compositor.shutdown().await
                 .expect("Failed to shutdown compositor");
             
-            println!("✅ Compositor shutdown completed cleanly");
+            println!("[PASS] Compositor shutdown completed cleanly");
         },
         Err(e) => {
-            println!("⚠️  Compositor initialization failed: {}", e);
+            println!("[WARN]  Compositor initialization failed: {}", e);
             
             // Check if this is due to missing display/session privileges
             if e.to_string().contains("No such file or directory") || 
@@ -97,7 +97,7 @@ async fn test_4k_graphics_capability() {
         Ok(renderer) => {
             let info = renderer.get_info();
             
-            println!("✅ 4K Graphics Pipeline Validation:");
+            println!("[PASS] 4K Graphics Pipeline Validation:");
             println!("   GPU: {}", info.device_name);
             println!("   Vendor: 0x{:X}", info.vendor_id);
             println!("   Device Type: {}", info.device_type);
@@ -119,10 +119,10 @@ async fn test_4k_graphics_capability() {
             assert!(!info.device_name.is_empty());
             assert!(info.vendor_id != 0);
             
-            println!("✅ 4K hardware acceleration pipeline validated");
+            println!("[PASS] 4K hardware acceleration pipeline validated");
         },
         Err(e) => {
-            println!("❌ 4K graphics capability validation failed: {}", e);
+            println!("[FAIL] 4K graphics capability validation failed: {}", e);
             panic!("Failed to validate 4K graphics capabilities");
         }
     }
@@ -147,7 +147,7 @@ async fn test_graphics_processing_pipeline() {
     
     match result {
         Ok(_) => {
-            println!("✅ 4K surface buffer processing successful");
+            println!("[PASS] 4K surface buffer processing successful");
             
             // Test buffer update
             let update_result = renderer.update_surface_texture(
@@ -159,17 +159,17 @@ async fn test_graphics_processing_pipeline() {
             );
             
             match update_result {
-                Ok(_) => println!("✅ 4K buffer update successful"),
-                Err(e) => println!("⚠️  4K buffer update failed: {}", e),
+                Ok(_) => println!("[PASS] 4K buffer update successful"),
+                Err(e) => println!("[WARN]  4K buffer update failed: {}", e),
             }
             
             // Cleanup
             let _ = renderer.remove_surface(1);
             
-            println!("✅ Complete 4K graphics processing pipeline validated");
+            println!("[PASS] Complete 4K graphics processing pipeline validated");
         },
         Err(e) => {
-            println!("⚠️  4K surface processing failed: {}", e);
+            println!("[WARN]  4K surface processing failed: {}", e);
             // Note: This might fail in headless environments
             // but the capability is validated by successful initialization
         }
