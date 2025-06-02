@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 wayland-client = "0.30"
-wayland-protocols = { version = "0.30", features = ["unstable_protocols"] } # For zwp_linux_dmabuf_v1, zwp_linux_explicit_sync_v1
+wayland-protocols = { version = "0.30", features = ["unstable"] } # For zwp_linux_dmabuf_v1, zwp_linux_explicit_sync_v1
 
 # Potential dependencies for DMA-BUF creation and sync file fds
 # libc = "0.2" # For syscalls if directly creating sync files or basic DRM ioctls

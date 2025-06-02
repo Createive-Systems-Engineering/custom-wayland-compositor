@@ -75,5 +75,5 @@ fn main() {
     */
 
     eprintln!("Full functionality for pointer_events_logger is not implemented yet.");
-    std.process::exit(1); // Indicate not implemented
+    std::process::exit(1); // Indicate not implemented
 }

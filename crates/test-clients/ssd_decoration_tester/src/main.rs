@@ -75,5 +75,5 @@ fn main() {
     */
 
     eprintln!("Full functionality for ssd_decoration_tester is not implemented yet.");
-    std.process::exit(1); // Indicate not implemented
+    std::process::exit(1); // Indicate not implemented
 }

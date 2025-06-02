@@ -79,7 +79,7 @@ fn main() {
 
     // if app_state.linux_dmabuf.is_none() {
     //     eprintln!("zwp_linux_dmabuf_v1 not available.");
-    //     std.process::exit(1);
+    //     std::process::exit(1);
     // }
 
     // // TODO: Step 2: Source DMA-BUF fd and its parameters (width, height, stride, offset, format, modifier)
@@ -94,7 +94,7 @@ fn main() {
 
     // if dma_fd == -1 {
     //     eprintln!("DMA-BUF fd not sourced. Exiting.");
-    //      std.process::exit(1);
+    //      std::process::exit(1);
     // }
 
     // let params = app_state.linux_dmabuf.as_ref().unwrap().create_params(&qh, ());
@@ -108,7 +108,7 @@ fn main() {
     // }
     // if app_state.wl_buffer_failed {
     //     eprintln!("Exiting due to buffer creation failure.");
-    //     std.process::exit(1);
+    //     std::process::exit(1);
     // }
 
     // // TODO: Create xdg_toplevel window, attach wl_dma_buffer, damage, commit, event loop...
@@ -116,5 +116,5 @@ fn main() {
 
     */
     eprintln!("Full functionality for dmabuf_import_render is not implemented yet.");
-    std.process::exit(1); // Indicate not implemented
+    std::process::exit(1); // Indicate not implemented
 }

@@ -76,7 +76,7 @@ fn main() {
     // // Check if globals were bound (simplified check)
     // if app_state.compositor.is_none() || app_state.shm.is_none() || app_state.xdg_wm_base.is_none() {
     //     eprintln!("Error: Required globals not available.");
-    //     std.process::exit(1);
+    //     std::process::exit(1);
     // }
 
     // // --- Actual window creation logic would go here ---
@@ -95,5 +95,5 @@ fn main() {
     // }
     */
     eprintln!("Functionality for shm_basic_window is not implemented yet.");
-    std.process::exit(1); // Indicate not implemented
+    std::process::exit(1); // Indicate not implemented
 }

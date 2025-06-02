@@ -96,5 +96,5 @@ fn main() {
     // }
     */
     eprintln!("Functionality for surface_damage_frame is not implemented yet.");
-    std.process::exit(1); // Indicate not implemented
+    std::process::exit(1); // Indicate not implemented
 }

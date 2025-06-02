@@ -51,7 +51,7 @@ fn main() {
 
     // if app_state.viewporter_manager.is_none() {
     //     eprintln!("wp_viewporter global not available. Skipping test.");
-    //     std.process::exit(0); // Exit gracefully, not a failure of the test itself if protocol is missing
+    //     std::process::exit(0); // Exit gracefully, not a failure of the test itself if protocol is missing
     // }
 
     // // Setup basic window with a pattern in its SHM buffer of fixed size (e.g., app_state.buffer_width)
@@ -92,5 +92,5 @@ fn main() {
     // }
     */
     eprintln!("Functionality for viewporter_scaling is not implemented yet.");
-    std.process::exit(1); // Indicate not implemented
+    std::process::exit(1); // Indicate not implemented
 }

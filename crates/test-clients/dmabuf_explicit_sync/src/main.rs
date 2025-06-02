@@ -83,7 +83,7 @@ fn main() {
     // if app_state.linux_dmabuf.is_none() { /* ... exit ... */ }
     // if app_state.explicit_sync_manager.is_none() {
     //     eprintln!("zwp_linux_explicit_synchronization_v1 not available. Skipping test.");
-    //     std.process::exit(0); // Graceful exit
+    //     std::process::exit(0); // Graceful exit
     // }
 
     // // TODO: Create DMA-BUF based wl_buffer (similar to dmabuf_import_render)
@@ -98,7 +98,7 @@ fn main() {
 
     //     // TODO: 4a. Create/source acquire_fence_fd (e.g., an already signaled fence for simplicity initially)
     //     let acquire_fd = -1; // Placeholder for a valid, signaled sync file fd
-    //     if acquire_fd == -1 { eprintln!("Failed to create acquire_fd"); std.process::exit(1); }
+    //     if acquire_fd == -1 { eprintln!("Failed to create acquire_fd"); std::process::exit(1); }
 
     //     app_state.surface_sync.as_ref().unwrap().set_acquire_fence(acquire_fd); // kernel closes this fd
 
@@ -125,7 +125,7 @@ fn main() {
     //     //     println!("Release fence for frame {} signaled.", frame + 1);
     //     // else:
     //     //     eprintln!("Timeout or error waiting for release fence for frame {}.", frame + 1);
-    //     //     std.process::exit(1);
+    //     //     std::process::exit(1);
     //     // app_state.release_fence_fd_to_wait_on.take(); // Consume the FD
 
     //     // TODO: (Optional) Modify DMA-BUF content for next frame
@@ -135,5 +135,5 @@ fn main() {
     // // event_queue.roundtrip(&mut app_state).expect("Final roundtrip failed");
     */
     eprintln!("Full functionality for dmabuf_explicit_sync is not implemented yet.");
-    std.process::exit(1); // Indicate not implemented
+    std::process::exit(1); // Indicate not implemented
 }

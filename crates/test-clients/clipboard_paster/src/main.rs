@@ -134,5 +134,5 @@ fn main() {
     */
 
     eprintln!("Full functionality for clipboard_paster is not implemented yet.");
-    std.process::exit(1); // Indicate not implemented
+    std::process::exit(1); // Indicate not implemented
 }

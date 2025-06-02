@@ -78,5 +78,5 @@ fn main() {
     // }
     */
     eprintln!("Functionality for xdg_shell_interactions is not implemented yet.");
-    std.process::exit(1); // Indicate not implemented
+    std::process::exit(1); // Indicate not implemented
 }
