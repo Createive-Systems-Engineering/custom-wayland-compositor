@@ -79,10 +79,26 @@ The custom Wayland compositor has successfully completed **Phase 1 (Foundation)*
 
 ---
 
-#### [WIP] Phase 4: Custom Protocol Test Applications - **PENDING DEFINITION**
-**Status**: **AWAITING DEFINITION**
+#### [WIP] Phase 4: Custom Protocol Test Applications - **IN PROGRESS**
+**Status**: **Test Designs & Skeletons Created; Implementation & Execution Pending**
+**Last Update**: [Current Date, e.g., YYYY-MM-DD - will be set by the system or manually entered by a user later]
+**Documentation**:
+    - Methodology: `livetest/SYSTEMATIC_TESTING_GUIDE.md` (see Phase 4 section)
+    - Design Docs:
+        - `livetest/custom_tests/core_windowing_design.md`
+        - `livetest/custom_tests/dmabuf_sync_design.md`
+        - `livetest/custom_tests/input_handling_design.md`
+        - `livetest/custom_tests/data_transfer_design.md`
+        - `livetest/custom_tests/advanced_visuals_design.md` (Part 1)
+    - Results Docs (to be filled by developers):
+        - `livetest/custom_tests/core_windowing_results.md`
+        - `livetest/custom_tests/dmabuf_sync_results.md`
+        - `livetest/custom_tests/input_handling_results.md`
+        - `livetest/custom_tests/data_transfer_results.md`
+        - `livetest/custom_tests/advanced_visuals_results.md` (Part 1)
+    - Summary (structure defined, to be created post-execution): `livetest/custom_tests/PHASE4_CUSTOM_TESTS_SUMMARY.md`
 **Dependencies**: Phase 3 protocol implementation (Complete)
-**Planned Validation**: (To be defined based on custom test applications)
+**Planned Validation**: Execution of custom Rust test clients for core windowing, DMA-BUF & explicit sync, input handling (pointer, keyboard), data transfer (clipboard), fractional scaling, and server-side decorations. Further test groups may be added.
 
 ---
 
@@ -136,9 +152,12 @@ The custom Wayland compositor has successfully completed **Phase 1 (Foundation)*
 
 ### Critical Path Analysis
 
-#### Immediate Priorities - New Phase 4 Definition
-With Phase 3 (Advanced Protocol implementation and validation) complete, the immediate priority is to define the scope, objectives, and test applications for the new **Phase 4: Custom Protocol Test Applications**.
-The focus then shifts to executing this new Phase 4.
+#### Immediate Priorities - Phase 4 Implementation & Execution
+With Phase 3 (Advanced Protocol implementation and validation) complete, and initial test designs and skeletons for Phase 4 created, the immediate priority is for developers to:
+1.  Implement the Wayland client logic for the defined custom test applications in `crates/test-clients/`.
+2.  Execute these tests against the compositor.
+3.  Document results in the respective `*_results.md` files.
+The focus is on completing the practical testing for the currently defined groups.
 
 #### Medium-term Objectives (New Phase 4 execution, then Phase 5 & 6)
 1. **New Phase 4 Execution** (Estimated: TBD based on definition)
@@ -181,10 +200,11 @@ The focus then shifts to executing this new Phase 4.
 
 #### Immediate Actions Required
 With Phase 3 complete:
-1. **Define New Phase 4**: Detail the objectives, critical validations, success criteria, and specific test applications/scenarios for "Phase 4: Custom Protocol Test Applications".
-2. **Implement New Phase 4 Tests**: Develop or acquire the custom test applications.
-3. **Execute New Phase 4**: Run the defined custom tests.
-4. **Proceed to Phase 5 (Professional Applications)**: Upon successful completion of the new Phase 4.
+1. **Implement Custom Test Applications**: Developers to complete the Rust code for test clients in Groups 1-5 (Part 1) based on their design documents.
+2. **Execute Custom Tests**: Systematically run each implemented test client against the compositor.
+3. **Record Results**: Fill in the `*_results.md` documents for each test group.
+4. **Summarize Phase 4**: Once all defined custom tests are executed and results documented, compile `PHASE4_CUSTOM_TESTS_SUMMARY.md`.
+5. **Proceed to Phase 5 (Professional Applications)**: Upon successful completion and positive assessment of Phase 4.
 
 #### Strategic Considerations
 1. **Incremental Validation**: Test each protocol component as implemented
@@ -204,12 +224,12 @@ With Phase 3 complete:
 
 The custom Wayland compositor has successfully completed Phase 1, Phase 2, and now Phase 3 validation. The graphics stack is operational and validated for 4K performance. All 37+ advanced Wayland protocols are implemented and validated, with real Wayland client application testing considered passable as of the v1.0.0 release.
 
-**Current Assessment**: The project has met all requirements for Phase 3. The next step is the definition and execution of the new Phase 4 (Custom Protocol Test Applications) before proceeding to Phase 5 (Professional Application Testing). The compositor has a robust, validated protocol foundation and proven graphics capabilities.
+**Current Assessment**: The project has met all requirements for Phase 3. The groundwork for Phase 4 (Custom Protocol Test Applications) including design documents and code skeletons is now laid. The next step is the implementation and execution of these custom tests before proceeding to Phase 5 (Professional Application Testing).
 
-**Recommendation**: Proceed with defining and implementing the new Phase 4. Then, move to Phase 5 (Professional Application Integration Testing), leveraging all validated components.
+**Recommendation**: Proceed with the development and execution of the custom test applications for Phase 4. Then, move to Phase 5 (Professional Application Integration Testing), leveraging all validated components.
 
 ---
 
-**Report Prepared By**: Automated Testing Framework (Updated based on V1.0.0 impact analysis)
-**Next Review Scheduled**: Upon new Phase 4 definition, and then upon its completion.
+**Report Prepared By**: Automated Testing Framework (Updated to reflect Phase 4 setup)
+**Next Review Scheduled**: Upon completion of Phase 4 custom test application execution and result summarization.
 **Contact**: Development team for technical details and implementation planning
