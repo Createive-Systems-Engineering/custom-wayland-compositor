@@ -3,9 +3,44 @@
 
 use compositor_utils::prelude::*;
 use compositor_core::Compositor;
+use vulkan_renderer;
+use std::env;
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Parse command line arguments
+    let args: Vec<String> = env::args().collect();
+    
+    // Handle command line arguments
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "--help" | "-h" => {
+                print_help();
+                return Ok(());
+            }
+            "--version" | "-v" => {
+                print_version();
+                return Ok(());
+            }
+            "--info" => {
+                print_detailed_info();
+                return Ok(());
+            }
+            "--check" => {
+                check_system_requirements();
+                return Ok(());
+            }
+            _ => {
+                eprintln!("Unknown argument: {}", args[1]);
+                eprintln!("Use --help for usage information");
+                std::process::exit(1);
+            }
+        }
+    }
+
     // Initialize logging system
     compositor_utils::setup_logging()?;
     
@@ -85,5 +120,148 @@ fn check_permissions() {
             info!("  Input devices found: {}", count);
         }
         Err(e) => warn!("  Cannot access input devices: {}", e),
+    }
+}
+
+fn print_help() {
+    println!("Custom Wayland Compositor v{}", VERSION);
+    println!("High-performance 4K compositor built with Rust and Vulkan");
+    println!();
+    println!("USAGE:");
+    println!("    custom-wayland-compositor [OPTIONS]");
+    println!();
+    println!("OPTIONS:");
+    println!("    -h, --help      Show this help message and exit");
+    println!("    -v, --version   Show version information and exit");
+    println!("    --info          Show detailed system information and exit");
+    println!("    --check         Check system requirements and exit");
+    println!();
+    println!("DESCRIPTION:");
+    println!("    A next-generation Wayland compositor optimized for 4K displays and modern");
+    println!("    UI/UX development. Features hardware-accelerated Vulkan rendering, advanced");
+    println!("    protocol support, and glassmorphism/neomorphism effects.");
+    println!();
+    println!("    When started, the compositor creates a Wayland display socket that clients");
+    println!("    can connect to. Use 'WAYLAND_DISPLAY=wayland-1 your-app' to run applications.");
+    println!();
+    println!("EXAMPLES:");
+    println!("    # Start the compositor");
+    println!("    custom-wayland-compositor");
+    println!();
+    println!("    # Check system requirements");
+    println!("    custom-wayland-compositor --check");
+    println!();
+    println!("    # Run a Wayland application in the compositor");
+    println!("    WAYLAND_DISPLAY=wayland-1 weston-terminal");
+    println!();
+    println!("REQUIREMENTS:");
+    println!("    - Vulkan-capable GPU (NVIDIA, AMD, or Intel)");
+    println!("    - Linux with DRM/KMS support");
+    println!("    - User in 'video' and 'render' groups for full acceleration");
+    println!("    - Wayland client applications for testing");
+    println!();
+    println!("For more information, visit: https://github.com/your-repo/custom-wayland-compositor");
+}
+
+fn print_version() {
+    println!("Custom Wayland Compositor v{}", VERSION);
+    println!("Built with Rust and Vulkan for 4K performance");
+    if !AUTHORS.is_empty() {
+        println!("Authors: {}", AUTHORS);
+    }
+}
+
+fn print_detailed_info() {
+    println!("Custom Wayland Compositor - System Information");
+    println!("==============================================");
+    
+    // Initialize minimal logging for info display
+    let _ = compositor_utils::setup_logging();
+    
+    print_system_info();
+    
+    // Additional technical details
+    println!("\nVulkan Support:");
+    match vulkan_renderer::VulkanRenderer::new() {
+        Ok(renderer) => {
+            let info = renderer.get_info();
+            println!("  Device: {}", info.device_name);
+            println!("  Vendor ID: 0x{:X}", info.vendor_id);
+            println!("  Device Type: {}", info.device_type);
+            println!("  API Version: {}.{}.{}", 
+                     ash::vk::api_version_major(info.api_version),
+                     ash::vk::api_version_minor(info.api_version),
+                     ash::vk::api_version_patch(info.api_version));
+            println!("  Status: Ready for 4K rendering");
+        }
+        Err(e) => {
+            println!("  Status: Error - {}", e);
+            println!("  This may indicate missing Vulkan drivers or permissions");
+        }
+    }
+}
+
+fn check_system_requirements() {
+    println!("System Requirements Check");
+    println!("========================");
+    
+    let mut all_good = true;
+    
+    // Check Vulkan support
+    print!("Vulkan Support: ");
+    match vulkan_renderer::VulkanRenderer::new() {
+        Ok(_) => println!("[PASS] Vulkan renderer initialized successfully"),
+        Err(e) => {
+            println!("[FAIL] {}", e);
+            all_good = false;
+        }
+    }
+    
+    // Check DRM access
+    print!("DRM Device Access: ");
+    let drm_paths = ["/dev/dri/card0", "/dev/dri/card1"];
+    let drm_accessible = drm_paths.iter().any(|path| std::fs::metadata(path).is_ok());
+    if drm_accessible {
+        println!("[PASS] DRM devices accessible");
+    } else {
+        println!("[WARN] No DRM devices accessible - hardware acceleration may be limited");
+    }
+    
+    // Check user groups
+    print!("User Groups: ");
+    if let Ok(output) = std::process::Command::new("groups").output() {
+        let groups = String::from_utf8_lossy(&output.stdout);
+        let has_video = groups.contains("video");
+        let has_render = groups.contains("render");
+        
+        if has_video && has_render {
+            println!("[PASS] User in video and render groups");
+        } else {
+            println!("[WARN] User not in video/render groups - run: sudo usermod -a -G video,render $USER");
+        }
+    } else {
+        println!("[WARN] Could not check user groups");
+    }
+    
+    // Check session type
+    print!("Session Type: ");
+    match std::env::var("XDG_SESSION_TYPE") {
+        Ok(session_type) => {
+            if session_type == "wayland" {
+                println!("[PASS] Running in Wayland session");
+            } else {
+                println!("[INFO] Running in {} session - compositor will work but with limited privileges", session_type);
+            }
+        }
+        Err(_) => println!("[WARN] Could not determine session type"),
+    }
+    
+    // Summary
+    println!();
+    if all_good {
+        println!("Summary: System is ready for 4K Wayland compositor!");
+    } else {
+        println!("Summary: System has some limitations but compositor should still work.");
+        println!("See warnings above for optimization suggestions.");
     }
 }

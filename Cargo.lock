@@ -503,10 +503,12 @@ name = "custom-wayland-compositor"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "ash 0.37.3+1.3.251",
  "compositor-core",
  "compositor-utils",
  "tokio",
  "tracing",
+ "vulkan-renderer",
 ]
 
 [[package]]

@@ -28,6 +28,7 @@ path = "src/main.rs"
 # Local dependencies
 compositor-utils = { path = "crates/utils" }
 compositor-core = { path = "crates/compositor-core" }
+vulkan-renderer = { path = "crates/vulkan-renderer" }
 
 # Async runtime
 tokio = { workspace = true }
@@ -37,6 +38,9 @@ anyhow = { workspace = true }
 
 # Logging
 tracing = { workspace = true }
+
+# Vulkan for CLI commands
+ash = { workspace = true }
 
 [workspace.package]
 version = "1.0.0"
