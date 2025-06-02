@@ -1,0 +1,13 @@
+[package]
+name = "keyboard_events_logger"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wayland-client = "0.30"
+# xkbcommon = { version = "0.5", default-features = false, features = ["wayland"] } # For keysym interpretation. `default-features = false` might be needed if it pulls too much.
+# Or use a simpler xkbcommon wrapper if available and sufficient.
+# tempfile = "3"
+# clap = { version = "4", features = ["derive"] }
+# tracing = "0.1"
+# tracing-subscriber = { version = "0.3", features = ["env-filter"] }

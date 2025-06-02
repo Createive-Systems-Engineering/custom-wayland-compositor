@@ -1,0 +1,13 @@
+[package]
+name = "pointer_constraints_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wayland-client = "0.30"
+wayland-protocols = { version = "0.30", features = ["unstable_protocols"] } # For zwp_pointer_constraints_v1
+
+# tempfile = "3"
+# clap = { version = "4", features = ["derive"] }
+# tracing = "0.1"
+# tracing-subscriber = { version = "0.3", features = ["env-filter"] }

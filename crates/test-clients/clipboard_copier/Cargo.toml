@@ -1,0 +1,16 @@
+[package]
+name = "clipboard_copier"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wayland-client = "0.30"
+# wayland-protocols = { version = "0.30", features = ["unstable_protocols"] } # Data device manager is usually core, but good to have if other util protocols are needed.
+# For simplicity, assuming wl_data_device_manager and related are exposed by wayland-client's default features.
+# If specific advanced features or older versions of protocols were needed, this might change.
+
+# libc = "0.2" # For O_CLOEXEC with pipe2 if not using std::os::unix::net::UnixStream::pair or similar for pipe
+# tempfile = "3" # For SHM window background
+# clap = { version = "4.0", features = ["derive"], optional = true } # For --text and --trigger CLI args
+# tracing = "0.1"
+# tracing-subscriber = { version = "0.3", features = ["env-filter"] }

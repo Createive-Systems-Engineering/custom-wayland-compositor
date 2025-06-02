@@ -1,0 +1,13 @@
+[package]
+name = "shm_basic_window"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wayland-client = "0.30" # Matches the version used in the main project (smithay 0.6 uses 0.30)
+# tempfile = "3" # May be needed for SHM pool creation
+# clap = { version = "4", features = ["derive"] } # For CLI argument parsing
+# once_cell = "1" # For global static state if necessary
+# parking_lot = "0.12" # For mutexes if needed for state
+# tracing = "0.1" # For logging, consistent with main project
+# tracing-subscriber = { version = "0.3", features = ["env-filter"] }

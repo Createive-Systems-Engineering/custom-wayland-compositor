@@ -1,8 +1,8 @@
-# Phase 4 Testing: Initial Status and Path Forward
+# Phase 5 Testing (Real Applications): Initial Status and Path Forward
 
 ## 1. Current Status of Phase 4 Testing
 
--   Phase 4 testing, "Professional Application Integration," as defined in the `livetest/PHASE4_TEST_PLAN.md`, was successfully initiated.
+-   Phase 5 testing (formerly Phase 4), "Professional Application Integration," as defined in the `livetest/PHASE5_REAL_APP_TEST_PLAN.md`, was successfully initiated in principle.
 -   The first application selected for systematic testing is **Firefox**.
 -   Initial conceptual test actions for Firefox were outlined and acknowledged. These included simulations of:
     -   Verifying compositor readiness and launching Firefox to use the custom compositor.
@@ -13,8 +13,8 @@
 
 ## 2. Summary of (Anticipated) Findings
 
--   This section will be populated with detailed findings as practical testing progresses. Currently, as testing has only been initiated, there are no concrete findings to summarize.
--   It is anticipated that as each application from `livetest/PHASE4_TEST_PLAN.md` is tested, findings will emerge across several key areas:
+-   This section will be populated with detailed findings as practical testing for Phase 5 progresses. Currently, as this phase is pending the new Phase 4, there are no concrete findings to summarize.
+-   It is anticipated that as each application from `livetest/PHASE5_REAL_APP_TEST_PLAN.md` is tested, findings will emerge across several key areas:
     -   **Application Compatibility:** How well each professional application (Firefox, LibreOffice, GIMP, VS Code, Blender, game engines, etc.) launches, operates its core functions, and interacts with the custom Wayland compositor.
     -   **Performance at 4K Resolution:** Objective metrics and subjective user experience regarding application responsiveness, rendering speed, and frame rates on a 4K display.
     -   **High-DPI Scaling:** Correctness of UI element scaling, text clarity, and overall visual fidelity for applications running at 4K, particularly relating to the implementation of `wp-fractional-scale-v1` if applicable.
@@ -29,15 +29,15 @@
 
 ## 3. Proposed Next Steps for Continuing and Completing Phase 4
 
-To effectively continue and complete Phase 4, the following systematic approach is proposed:
+To effectively continue and complete Phase 5, the following systematic approach is proposed (once the new Phase 4 is complete):
 
 -   **Systematic Execution of Test Plan:**
-    -   Proceed with the hands-on testing of each application listed in `livetest/PHASE4_TEST_PLAN.md`: Firefox, LibreOffice Suite, GIMP, VS Code, Blender, Unity/Unreal Engine (or Godot), selected video conferencing applications, and gaming applications.
+    -   Proceed with the hands-on testing of each application listed in `livetest/PHASE5_REAL_APP_TEST_PLAN.md`: Firefox, LibreOffice Suite, GIMP, VS Code, Blender, Unity/Unreal Engine (or Godot), selected video conferencing applications, and gaming applications.
     -   For each application, methodically execute all specified test cases. This includes verifying basic functionality, assessing performance (especially at 4K), testing all aspects of window management (resize, minimize, maximize, fullscreen, popups), validating input handling (keyboard, mouse, tablet if applicable), and observing protocol-specific features in action.
 
 -   **Rigorous Logging and Reporting:**
     -   Meticulously document all observations during testing. This includes noting successful operations, any deviations from expected behavior, performance data (e.g., frame rates, load times), and resource utilization.
-    -   Follow the reporting guidelines outlined in `livetest/PHASE4_TEST_PLAN.md` for logging test outcomes (pass/fail with criteria).
+    -   Follow the reporting guidelines outlined in `livetest/PHASE5_REAL_APP_TEST_PLAN.md` for logging test outcomes (pass/fail with criteria).
     -   For any identified failures, bugs, or significant performance regressions, create detailed and actionable bug reports. These reports must include:
         -   Application name and version.
         -   Clear, step-by-step instructions to reproduce the issue.
@@ -45,7 +45,7 @@ To effectively continue and complete Phase 4, the following systematic approach 
         -   Relevant compositor logs (including `WAYLAND_DEBUG=1` output if helpful).
         -   Application-specific logs (if available).
         -   Screenshots or screen recordings to visually document the issue.
-    -   All issues should be tracked using the project's designated issue tracker (e.g., GitHub Issues), tagged appropriately for Phase 4.
+    -   All issues should be tracked using the project's designated issue tracker (e.g., GitHub Issues), tagged appropriately for Phase 5.
 
 -   **Iterative Debugging and Retesting:**
     -   Identified issues will require debugging efforts from the development team. This may involve analyzing compositor logs, Wayland protocol dumps, and potentially debugging the compositor code itself or identifying Wayland compliance issues in the applications.
@@ -57,16 +57,16 @@ To effectively continue and complete Phase 4, the following systematic approach 
     -   Where possible, use application-internal FPS counters or external tools (if compatible) to measure frame times and overall rendering performance, aiming for the targets set in the test plan (e.g., 60 FPS at 4K, <16ms input latency).
 
 -   **Documentation of Results:**
-    -   Upon completion of testing for all specified applications, compile a comprehensive Phase 4 final test report. This report will summarize:
+    -   Upon completion of testing for all specified applications, compile a comprehensive Phase 5 final test report. This report will summarize:
         -   All applications tested and their versions.
         -   A list of all executed test cases and their outcomes (pass/fail).
         -   Detailed descriptions of all significant bugs found, their status (resolved, open, workaround available), and their impact.
         -   Key performance benchmarks and observations.
         -   An overall assessment of compatibility and stability.
-    -   Update the `livetest/VALIDATION_STATUS.md` file to accurately reflect the final outcome and status of Phase 4 testing.
+    -   Update the `livetest/VALIDATION_STATUS.md` file to accurately reflect the final outcome and status of Phase 5 testing.
 
--   **Decision Point for Phase 5:**
-    -   The comprehensive results and final report from Phase 4 will serve as the primary basis for deciding whether the compositor is ready to proceed to Phase 5 ("Desktop Integration").
+-   **Decision Point for Phase 6 (formerly Phase 5 "Desktop Integration"):**
+    -   The comprehensive results and final report from Phase 5 will serve as the primary basis for deciding whether the compositor is ready to proceed to Phase 6 ("Desktop Integration").
     -   Key considerations for this decision will include the overall stability of the compositor, the breadth of application compatibility achieved, the performance characteristics observed, and the number and severity of any outstanding critical issues.
 
-This structured approach will ensure that Phase 4 testing is thorough, its results are well-documented, and the project makes informed decisions about future development and progression to the final testing phase.
+This structured approach will ensure that Phase 5 testing is thorough, its results are well-documented, and the project makes informed decisions about future development and progression to the subsequent testing phase.

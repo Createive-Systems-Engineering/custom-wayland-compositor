@@ -9,6 +9,7 @@ members = [
     "crates/config",
     "crates/ipc",
     "crates/utils",
+    "crates/test-clients/*", # Added for custom test applications
 ]
 
 # Main binary package
