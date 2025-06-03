@@ -5,13 +5,14 @@
 
 pub mod error;
 pub mod logging;
+pub mod logging_macros;
 pub mod math;
 pub mod memory;
 pub mod async_utils;
 
 // Re-export commonly used types
 pub use error::{CompositorError, Result};
-pub use logging::setup_logging;
+pub use logging::{setup_logging, get_logger, CompositorLogger, log_startup_phase, log_error_with_context};
 
 /// Common prelude for the compositor project
 pub mod prelude {

@@ -69,42 +69,6 @@ impl Default for DisplayConfig {
     }
 }
 
-/// App bar configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AppBarConfig {
-    /// Position: Left, Right, Top, Bottom
-    pub position: String,
-    /// Width in pixels (for side positions) or height (for top/bottom)
-    pub size: u32,
-    /// Auto-hide behavior
-    pub auto_hide: bool,
-    /// Auto-hide delay in milliseconds
-    pub auto_hide_delay: u64,
-    /// Always on top
-    pub always_on_top: bool,
-    /// Transparency (0.0 - 1.0)
-    pub transparency: f32,
-    /// Enable glassmorphism effects
-    pub glassmorphism: bool,
-    /// Blur radius for glassmorphism
-    pub blur_radius: f32,
-}
-
-impl Default for AppBarConfig {
-    fn default() -> Self {
-        Self {
-            position: "left".to_string(),
-            size: 80,
-            auto_hide: false,
-            auto_hide_delay: 1000,
-            always_on_top: true,
-            transparency: 0.85,
-            glassmorphism: true,
-            blur_radius: 20.0,
-        }
-    }
-}
-
 /// Theme configuration for glassmorphism/neomorphism
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThemeConfig {
@@ -209,8 +173,6 @@ impl Default for PluginConfig {
 pub struct CompositorConfig {
     /// Display configuration
     pub display: DisplayConfig,
-    /// App bar configuration
-    pub app_bar: AppBarConfig,
     /// Theme configuration
     pub theme: ThemeConfig,
     /// Performance configuration
@@ -223,7 +185,6 @@ impl Default for CompositorConfig {
     fn default() -> Self {
         Self {
             display: DisplayConfig::default(),
-            app_bar: AppBarConfig::default(),
             theme: ThemeConfig::default(),
             performance: PerformanceConfig::default(),
             plugins: PluginConfig::default(),
@@ -244,13 +205,6 @@ impl CompositorConfig {
         if self.display.refresh_rate == 0 {
             return Err(ConfigError::Validation {
                 message: "Display refresh rate must be positive".to_string(),
-            });
-        }
-        
-        // Validate app bar configuration
-        if self.app_bar.transparency < 0.0 || self.app_bar.transparency > 1.0 {
-            return Err(ConfigError::Validation {
-                message: "App bar transparency must be between 0.0 and 1.0".to_string(),
             });
         }
         

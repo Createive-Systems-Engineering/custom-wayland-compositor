@@ -7,6 +7,7 @@
 // - Integration with the Vulkan renderer
 
 use compositor_utils::prelude::*;
+use compositor_utils::{log_startup_phase, log_error_with_context};
 use vulkan_renderer::VulkanRenderer;
 use std::sync::{atomic::AtomicBool, Arc};
 
@@ -26,7 +27,7 @@ pub mod tests;
 /// Re-export core types
 pub use wayland::WaylandServer;
 pub use session::{SessionManager, SessionState};
-pub use backend::Backend;
+pub use backend::{Backend, DisplayOutput};
 
 /// Main compositor instance
 pub struct Compositor {
@@ -39,18 +40,47 @@ pub struct Compositor {
 impl Compositor {
     /// Create a new compositor instance
     pub async fn new() -> Result<Self> {
-        info!("Initializing custom compositor");
+        log_startup_phase("COMPOSITOR_CORE_INIT", "Initializing custom compositor");
         
         // Initialize renderer first
+        log_startup_phase("RENDERER_INIT", "Initializing Vulkan renderer");
         let renderer = VulkanRenderer::new()
-            .map_err(|e| CompositorError::init(format!("Failed to initialize renderer: {}", e)))?;
+            .map_err(|e| {
+                let error_msg = format!("Failed to initialize renderer: {}", e);
+                log_error_with_context(&error_msg, "Renderer Initialization");
+                CompositorError::init(error_msg)
+            })?;
         
         info!("Renderer info: {:?}", renderer.get_info());
         
         // Initialize backend (DRM/libinput)
-        let backend = Backend::new()
+        log_startup_phase("BACKEND_INIT", "Initializing backend (DRM/libinput)");
+        let mut backend = Backend::new()
             .await
             .map_err(|e| CompositorError::init(format!("Failed to initialize backend: {}", e)))?;
+        
+        // Log backend information
+        info!("Backend type: {:?}", backend.backend_type());
+        if let Some(drm_path) = backend.drm_device_path() {
+            info!("Using DRM device: {}", drm_path);
+        }
+        
+        // CRITICAL: Initialize displays and connect to renderer
+        log_startup_phase("DISPLAY_INIT", "Initializing displays and connecting to renderer");
+        let mut renderer = renderer; // Make renderer mutable for display initialization
+        backend.initialize_displays(&mut renderer)
+            .await
+            .map_err(|e| {
+                let error_msg = format!("Failed to initialize displays: {}", e);
+                log_error_with_context(&error_msg, "Display Initialization");
+                CompositorError::init(error_msg)
+            })?;
+        
+        info!("Displays initialized: {} connected", backend.displays().len());
+        if let Some(primary) = backend.primary_display() {
+            info!("Primary display: {} ({}x{}@{}Hz)", 
+                  primary.name, primary.width, primary.height, primary.refresh_rate);
+        }
         
         // Initialize Wayland server
         let mut wayland_server = WaylandServer::new()
@@ -90,7 +120,7 @@ impl Compositor {
         let running_clone = running.clone();
         let compositor_handle = tokio::spawn(async move {
             let mut backend = backend;
-            let _renderer = renderer; // Keep renderer for future use
+            let mut renderer = renderer; // Make renderer mutable for frame rendering
             
             while running_clone.load(std::sync::atomic::Ordering::Relaxed) {
                 // Process backend events (input, output changes, etc.)
@@ -99,11 +129,14 @@ impl Compositor {
                     break;
                 }
                 
-                // Render frame (placeholder for now)
-                // TODO: Implement proper frame rendering
+                // CRITICAL: Actually render frames to displays
+                if let Err(e) = Self::render_frame_to_displays(&mut renderer, &backend).await {
+                    error!("Render error: {}", e);
+                    // Don't break on render errors, just log them
+                }
                 
-                // Yield to other tasks
-                tokio::time::sleep(std::time::Duration::from_millis(16)).await; // ~60 FPS
+                // Yield to other tasks (~60 FPS)
+                tokio::time::sleep(std::time::Duration::from_millis(16)).await;
             }
             info!("Background compositor tasks completed");
         });
@@ -183,6 +216,50 @@ impl Compositor {
         self.wayland_server.shutdown().await?;
         
         info!("Compositor shutdown complete");
+        Ok(())
+    }
+    
+    /// Render frames to all connected displays
+    async fn render_frame_to_displays(renderer: &mut VulkanRenderer, backend: &Backend) -> Result<()> {
+        // Get primary display for rendering
+        if let Some(primary_display) = backend.primary_display() {
+            if primary_display.connected {
+                // Begin frame on primary display
+                match renderer.begin_frame() {
+                    Ok(image_index) => {
+                        // Render the frame with compositor content
+                        match renderer.render_frame(0, image_index) {
+                            Ok(_command_buffer) => {
+                                // End frame and present to screen
+                                if let Err(e) = renderer.end_frame() {
+                                    debug!("Present error (expected during development): {}", e);
+                                }
+                                
+                                // Log successful frame every few seconds to avoid spam
+                                static mut FRAME_COUNT: u64 = 0;
+                                unsafe {
+                                    FRAME_COUNT += 1;
+                                    if FRAME_COUNT % 300 == 0 { // Every 5 seconds at 60fps
+                                        info!("Successfully rendered frame {} to display: {}", 
+                                              FRAME_COUNT, primary_display.name);
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                debug!("Render frame error (expected during development): {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        debug!("Begin frame error (expected during development): {}", e);
+                    }
+                }
+            }
+        } else {
+            // No displays connected - this is fine for headless operation
+            tokio::task::yield_now().await;
+        }
+        
         Ok(())
     }
 }

@@ -58,6 +58,7 @@ impl VulkanInstance {
             ash::extensions::khr::Surface::name().as_ptr(),
             ash::extensions::khr::XlibSurface::name().as_ptr(),
             ash::extensions::khr::WaylandSurface::name().as_ptr(),
+            ash::extensions::khr::Display::name().as_ptr(),
         ];
         
         // Add debug extensions in debug mode
@@ -140,15 +141,29 @@ impl VulkanInstance {
         &self.entry
     }
     
-    /// Get API version
+    /// Get Vulkan API version
     pub fn get_api_version(&self) -> u32 {
         self.api_version
     }
-    
-    /// Enumerate physical devices
+
+    /// Enumerate available physical devices
     pub fn enumerate_physical_devices(&self) -> Result<Vec<vk::PhysicalDevice>> {
-        let devices = unsafe { self.instance.enumerate_physical_devices()? };
-        Ok(devices)
+        unsafe {
+            self.instance
+                .enumerate_physical_devices()
+                .map_err(|e| CompositorError::graphics(&format!("Failed to enumerate physical devices: {}", e)))
+        }
+    }
+
+    /// Enumerate available displays for direct display mode (DRM)
+    pub fn enumerate_displays(&self, physical_device: vk::PhysicalDevice) -> Result<Vec<vk::DisplayPropertiesKHR>> {
+        let display_loader = ash::extensions::khr::Display::new(&self.entry, &self.instance);
+        
+        unsafe {
+            display_loader
+                .get_physical_device_display_properties(physical_device)
+                .map_err(|e| CompositorError::graphics(&format!("Failed to enumerate displays: {}", e)))
+        }
     }
 }
 

@@ -2,9 +2,11 @@
 // High-performance compositor built with Rust and Vulkan for 4K UI/UX development
 
 use compositor_utils::prelude::*;
+use compositor_utils::{log_startup_phase, log_error_with_context};
 use compositor_core::Compositor;
 use vulkan_renderer;
 use std::env;
+use std::time::Instant;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
@@ -41,33 +43,51 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    // Initialize logging system
+    // Initialize logging system with enhanced diagnostics
+    log_startup_phase("LOGGING_INIT", "Setting up comprehensive logging system");
     compositor_utils::setup_logging()?;
     
-    info!("Starting Custom Wayland Compositor");
+    log_startup_phase("COMPOSITOR_START", &format!("Starting Custom Wayland Compositor v{}", VERSION));
     info!("Target: 4K UI/UX development on Debian 12 Linux");
     
     // Print system information
+    log_startup_phase("SYSTEM_INFO", "Gathering system information");
     print_system_info();
     
-    // Create and run compositor
+    // Create and run compositor with enhanced logging
+    log_startup_phase("COMPOSITOR_INIT", "Initializing compositor with Vulkan renderer");
+    let start_time = Instant::now();
     let compositor = Compositor::new().await
         .context("Failed to create compositor")?;
+    let creation_time = start_time.elapsed();
+    info!("Compositor creation completed in {:?}", creation_time);
     
     // Display connection information
     if let Some(socket_name) = compositor.wayland_socket_name() {
+        log_startup_phase("WAYLAND_SOCKET", &format!("Socket created: {}", socket_name));
         info!("Wayland socket available: {}", socket_name);
         info!("Clients can connect with: WAYLAND_DISPLAY={}", socket_name);
+    } else {
+        warn!("No Wayland socket name available - this may indicate initialization issues");
     }
     
+    // Execute startup script to launch essential applications (including VSCode)
+    log_startup_phase("STARTUP_SCRIPT", "Executing application startup script");
+    execute_startup_script().await;
+    
+    log_startup_phase("MAIN_LOOP", "Starting compositor main loop");
     info!("Compositor created successfully, starting main loop");
     
     // Run the compositor (this consumes self and handles its own cleanup)
+    let start_time = Instant::now();
     if let Err(e) = compositor.run().await {
+        log_error_with_context(&format!("{}", e), "Compositor Main Loop");
         error!("Compositor error: {}", e);
         return Err(e.into());
     }
+    let run_time = start_time.elapsed();
     
+    log_startup_phase("COMPOSITOR_SHUTDOWN", &format!("Compositor shut down successfully after running for {:?}", run_time));
     info!("Compositor shut down successfully");
     Ok(())
 }
@@ -263,5 +283,55 @@ fn check_system_requirements() {
     } else {
         println!("Summary: System has some limitations but compositor should still work.");
         println!("See warnings above for optimization suggestions.");
+    }
+}
+
+/// Execute the startup script to launch essential applications
+async fn execute_startup_script() {
+    let home_dir = match std::env::var("HOME") {
+        Ok(home) => home,
+        Err(_) => {
+            warn!("Could not determine HOME directory, skipping startup script");
+            return;
+        }
+    };
+    
+    let startup_script = format!("{}/.config/custom-compositor/startup.sh", home_dir);
+    
+    // Check if startup script exists
+    if !std::path::Path::new(&startup_script).exists() {
+        info!("No startup script found at {}, skipping", startup_script);
+        return;
+    }
+    
+    info!("Executing startup script: {}", startup_script);
+    
+    // Execute the startup script in the background
+    match tokio::process::Command::new("bash")
+        .arg(&startup_script)
+        .spawn()
+    {
+        Ok(mut child) => {
+            info!("Startup script launched successfully");
+            
+            // Don't wait for the script to complete - let it run in background
+            tokio::spawn(async move {
+                match child.wait().await {
+                    Ok(status) => {
+                        if status.success() {
+                            info!("Startup script completed successfully");
+                        } else {
+                            warn!("Startup script exited with status: {}", status);
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to wait for startup script: {}", e);
+                    }
+                }
+            });
+        }
+        Err(e) => {
+            error!("Failed to execute startup script: {}", e);
+        }
     }
 }

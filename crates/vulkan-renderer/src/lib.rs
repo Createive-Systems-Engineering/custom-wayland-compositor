@@ -55,6 +55,13 @@ impl VulkanRenderer {
     
     /// Initialize swapchain for a given surface
     pub fn initialize_swapchain(&mut self, surface: ash::vk::SurfaceKHR, width: u32, height: u32) -> Result<()> {
+        // Check if we're dealing with a null surface (development/testing fallback)
+        if surface == ash::vk::SurfaceKHR::null() {
+            info!("Using dummy swapchain for null surface (development mode)");
+            self.initialize_dummy_swapchain(width, height)?;
+            return Ok(());
+        }
+        
         let swapchain = Swapchain::new(&self.instance, &self.device, surface, width, height)?;
         
         // Initialize compositor renderer with swapchain details
@@ -68,6 +75,29 @@ impl VulkanRenderer {
         }
         
         self.swapchain = Some(swapchain);
+        Ok(())
+    }
+    
+    /// Initialize a dummy swapchain for development/testing
+    fn initialize_dummy_swapchain(&mut self, width: u32, height: u32) -> Result<()> {
+        // Create a dummy swapchain for development mode
+        info!("Initializing dummy swapchain ({}x{})", width, height);
+        
+        // Create an offscreen swapchain implementation that doesn't need a surface
+        let dummy_swapchain = Swapchain::new_dummy(&self.device, width, height)?;
+        
+        // Initialize compositor renderer with the dummy swapchain
+        if let Some(ref mut compositor_renderer) = &mut self.compositor_renderer {
+            compositor_renderer.initialize_swapchain(
+                dummy_swapchain.images().to_vec(),
+                dummy_swapchain.image_views().to_vec(),
+                dummy_swapchain.extent(),
+                dummy_swapchain.format(),
+            )?;
+        }
+        
+        self.swapchain = Some(dummy_swapchain);
+        info!("Dummy swapchain initialized successfully");
         Ok(())
     }
     
@@ -153,6 +183,16 @@ impl VulkanRenderer {
             vendor_id: self.device.get_vendor_id(),
             device_type: self.device.get_device_type(),
         }
+    }
+
+    /// Get reference to the Vulkan instance for VK_KHR_display operations
+    pub fn instance(&self) -> &VulkanInstance {
+        &self.instance
+    }
+
+    /// Get reference to the Vulkan device for VK_KHR_display operations
+    pub fn device(&self) -> &Arc<VulkanDevice> {
+        &self.device
     }
 }
 
